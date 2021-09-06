@@ -1,0 +1,28 @@
+job:
+  name: test_job1
+  engine: spark-sql
+  # depend_on: test_job2
+  schedule_interval: '0 6 * * *'
+  airflow_dag_args:
+    start_date: 20190430
+    catch_up: true
+    retries: 1
+
+sources:
+  - type: query
+    sql: >-
+      SELECT id, title, actor, target
+      FROM events
+      WHERE pt_date="{{ ds }}"
+    alias: daily_events
+
+computes:
+  - sql: >-
+      SELECT actor.id, count(*) as daily_amount
+      FROM daily_events
+      GROUP BY actor.id
+
+sinks:
+  - type: redis
+    host: 127.0.0.1
+    db: 6380

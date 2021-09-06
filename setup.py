@@ -5,14 +5,20 @@ from setuptools import setup
 with open("README.md", "r", encoding="utf-8") as f:
     readme = f.read()
 
-INSTALL_REQUIRE = []
+INSTALL_REQUIRES = ["pydantic>=1.0.0"]
 
-DEV_REQUIRE = [
+CLI_REQUIRES = []
+
+AIRFLOW_REQUIRES = []
+
+DEV_REQUIRES = [
     "flake8",
     "black==19.10b0",
     "isort>=5",
     "mypy==0.790",
-    "pytest==6.0.0", "pytest-xdist", "assertpy==1.1"
+    "pytest==6.0.0",
+    "pytest-xdist",
+    "assertpy==1.1",
 ]
 
 setup(
@@ -30,9 +36,11 @@ setup(
     },
     license='Apache License, Version 2.0',
     packages=["feaflow"],
-    install_requires=INSTALL_REQUIRE,
+    install_requires=INSTALL_REQUIRES,
     extras_require={
-        "dev": DEV_REQUIRE,
+        "dev": DEV_REQUIRES,
+        "cli": CLI_REQUIRES,
+        "airflow": AIRFLOW_REQUIRES,
     },
     keywords=("feature featurestore feature_ingestion"),
     classifiers=[
