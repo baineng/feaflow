@@ -1,34 +1,23 @@
-from enum import Enum
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Union
 
-from pydantic import BaseModel
+import yaml
 
-
-class Engine(Enum):
-    SPARK_SQL = "spark_sql"
-    HIVE = "hive"
+from feaflow.exceptions import ConfigException
+from feaflow.model import JobConfig
 
 
-class Source:
-    pass
+def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
+    job_conf_path = Path(path)
+    if not job_conf_path.exists():
+        raise FileNotFoundError(f"The job path `{path}` does not exist.")
 
-
-class Compute:
-    pass
-
-
-class Sink:
-    pass
-
-
-class JobConfig(BaseModel):
-    name: str
-    schedule_interval: str
-    computes: List[Compute]
-    engine: Optional[Engine] = None
-    airflow_dag_args: Optional[Dict[str, str]] = None
-    sources: Optional[List[Source]] = None
-    sinks: Optional[List[Sink]] = None
+    try:
+        with open(job_conf_path) as f:
+            config = yaml.safe_load(f)
+            return JobConfig(**config)
+    except Exception as ex:
+        raise ConfigException(ex, str(job_conf_path.absolute()))
 
 
 class Job:

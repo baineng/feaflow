@@ -5,7 +5,7 @@ from setuptools import setup
 with open("README.md", "r", encoding="utf-8") as f:
     readme = f.read()
 
-INSTALL_REQUIRES = ["pydantic>=1.0.0"]
+INSTALL_REQUIRES = ["pydantic>=1.0.0", "PyYAML>=5.4.*"]
 
 CLI_REQUIRES = []
 
