@@ -11,6 +11,8 @@ CLI_REQUIRES = []
 
 AIRFLOW_REQUIRES = []
 
+SPARK_REQUIRES = []
+
 DEV_REQUIRES = [
     "flake8",
     "black==19.10b0",
@@ -19,7 +21,7 @@ DEV_REQUIRES = [
     "pytest==6.0.0",
     "pytest-xdist",
     "assertpy==1.1",
-]
+] + CLI_REQUIRES + AIRFLOW_REQUIRES + SPARK_REQUIRES
 
 setup(
     name="feaflow",

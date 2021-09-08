@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 
 
 class FeaflowModel(BaseModel):
@@ -19,3 +19,11 @@ class ComponentConfig(FeaflowImmutableModel, ABC):
     @abstractmethod
     def get_impl_cls(cls):
         raise NotImplementedError
+
+
+class Engine(ABC):
+    pass
+
+
+class EngineConfig(ComponentConfig, ABC):
+    name: constr(regex=r"^[^_][\w]+$", strip_whitespace=True, strict=True)

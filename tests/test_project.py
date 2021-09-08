@@ -1,12 +1,11 @@
 import pytest
 
-from feaflow.exceptions import ConfigException
-from feaflow.engine import Engine
-from feaflow.job import JobConfig
-from feaflow.sink import RedisSinkConfig
 from feaflow.compute import SqlComputeConfig
-from feaflow.source import QuerySourceConfig
+from feaflow.exceptions import ConfigException
+from feaflow.job import JobConfig
 from feaflow.project import Project
+from feaflow.sink import RedisSinkConfig
+from feaflow.source import QuerySourceConfig
 
 
 def test_create_project(example_project_path):
@@ -35,7 +34,7 @@ def test_scan_jobs(example_project):
 
     test_job1: JobConfig = next(filter(lambda j: j.name == "test_job1", jobs))
     assert test_job1.schedule_interval == "0 6 * * *"
-    assert test_job1.engine == Engine.SPARK_SQL
+    assert test_job1.engine == "default_spark"
     assert type(test_job1.sources[0]) == QuerySourceConfig
     assert test_job1.sources[0].alias == "daily_events"
     assert type(test_job1.computes[0]) == SqlComputeConfig

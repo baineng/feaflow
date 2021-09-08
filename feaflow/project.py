@@ -4,6 +4,7 @@ from typing import List, Union
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
 
+from feaflow.engine.spark import SparkEngineConfig
 from feaflow.exceptions import ConfigException
 from feaflow.job import JobConfig, parse_job_config_file
 from feaflow.model import FeaflowModel
@@ -13,6 +14,7 @@ class ProjectConfig(FeaflowModel):
     name: constr(regex=r"^[^_][\w ]+$", strip_whitespace=True, strict=True)
     root_path: DirectoryPath
     config_file_path: FilePath
+    engines: List[Union[SparkEngineConfig]]
 
 
 def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
@@ -30,10 +32,14 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
         with open(config_file_path) as f:
             config = yaml.safe_load(f)
 
+            project_name = config["project_name"]
+            del config["project_name"]
+
             project_config = ProjectConfig(
-                name=config["project_name"],
+                name=project_name,
                 root_path=root_path,
                 config_file_path=config_file_path,
+                **config,
             )
             return project_config
     except Exception as ex:

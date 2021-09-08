@@ -5,7 +5,6 @@ import yaml
 from pydantic import constr
 
 from feaflow.compute import Compute, SqlComputeConfig, create_compute_from_config
-from feaflow.engine import Engine
 from feaflow.exceptions import ConfigException
 from feaflow.model import FeaflowModel
 from feaflow.project import Project
@@ -17,7 +16,7 @@ class JobConfig(FeaflowModel):
     name: constr(regex=r"^[^_]\w+$", strip_whitespace=True, strict=True)
     schedule_interval: str
     computes: List[Union[SqlComputeConfig]]
-    engine: Engine = Engine.SPARK_SQL
+    engine: str
     depends_on: Optional[str] = None
     airflow_dag_args: Optional[Dict[str, Any]] = None
     sources: Optional[List[Union[QuerySourceConfig]]] = None
@@ -62,6 +61,10 @@ class Job:
     @property
     def config(self) -> JobConfig:
         return self._config
+
+    @property
+    def engine(self) -> str:
+        return self._config.engine
 
     @property
     def sources(self) -> List[Source]:

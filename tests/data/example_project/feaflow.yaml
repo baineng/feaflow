@@ -1,1 +1,5 @@
 project_name: Feaflow Test Project
+
+engines:
+  - name: default_spark
+    type: spark

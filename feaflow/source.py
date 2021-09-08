@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Optional
 
-from typing_extensions import Literal
+from pydantic.typing import Literal
 
 from feaflow.model import ComponentConfig
 
