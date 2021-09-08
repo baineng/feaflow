@@ -2,10 +2,17 @@ from pathlib import Path
 from typing import List, Union
 
 import yaml
+from pydantic import DirectoryPath, FilePath, constr
 
 from feaflow.exceptions import ConfigException
-from feaflow.job import parse_job_config_file
-from feaflow.model import JobConfig, ProjectConfig
+from feaflow.job import JobConfig, parse_job_config_file
+from feaflow.model import FeaflowModel
+
+
+class ProjectConfig(FeaflowModel):
+    name: constr(regex=r"^[^_][\w ]+$", strip_whitespace=True, strict=True)
+    root_path: DirectoryPath
+    config_file_path: FilePath
 
 
 def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:

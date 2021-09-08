@@ -1,26 +1,12 @@
-from pathlib import Path
-
 import pytest
 
 from feaflow.exceptions import ConfigException
-from feaflow.model import (
-    JobConfig,
-    Engine,
-    QuerySourceConfig,
-    SqlComputeConfig,
-    RedisSinkConfig,
-)
+from feaflow.model import Engine
+from feaflow.job import JobConfig
+from feaflow.sink import RedisSinkConfig
+from feaflow.compute import SqlComputeConfig
+from feaflow.source import QuerySourceConfig
 from feaflow.project import Project
-
-
-@pytest.fixture
-def example_project_path():
-    return Path(__file__).parent.joinpath("data/example_project")
-
-
-@pytest.fixture
-def example_project(example_project_path):
-    return Project(example_project_path)
 
 
 def test_create_project(example_project_path):
