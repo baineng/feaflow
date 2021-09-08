@@ -6,15 +6,11 @@ from feaflow.sink import RedisSink
 from feaflow.source import QuerySource
 
 
-@pytest.fixture
-def test_job1_conf(example_project) -> JobConfig:
+def test_construct_job(example_project):
     job_confs = example_project.scan_jobs()
     test_job1_conf: JobConfig = next(filter(lambda j: j.name == "test_job1", job_confs))
-    return test_job1_conf
 
-
-def test_construct_job(test_job1_conf):
-    job = Job(test_job1_conf)
+    job = Job(example_project, test_job1_conf)
     assert job.config.name == "test_job1"
 
     assert len(job.sources) == 1

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 
 from pydantic import BaseModel
 
@@ -20,8 +19,3 @@ class ComponentConfig(FeaflowImmutableModel, ABC):
     @abstractmethod
     def get_impl_cls(cls):
         raise NotImplementedError
-
-
-class Engine(str, Enum):
-    SPARK_SQL = "spark-sql"
-    HIVE = "hive"

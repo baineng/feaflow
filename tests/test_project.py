@@ -1,7 +1,7 @@
 import pytest
 
 from feaflow.exceptions import ConfigException
-from feaflow.model import Engine
+from feaflow.engine import Engine
 from feaflow.job import JobConfig
 from feaflow.sink import RedisSinkConfig
 from feaflow.compute import SqlComputeConfig
