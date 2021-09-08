@@ -2,14 +2,10 @@ from abc import ABC
 
 from pydantic.typing import Literal
 
-from feaflow.model import ComponentConfig
+from feaflow.model import SinkConfig
 
 
 class Sink(ABC):
-    pass
-
-
-class SinkConfig(ComponentConfig, ABC):
     pass
 
 

@@ -1,26 +1,14 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Union
 
 import yaml
-from pydantic import constr
 
-from feaflow.compute import Compute, SqlComputeConfig, create_compute_from_config
+from feaflow.compute import Compute, create_compute_from_config
 from feaflow.exceptions import ConfigLoadException
-from feaflow.model import FeaflowModel
+from feaflow.model import JobConfig
 from feaflow.project import Project
-from feaflow.sink import RedisSinkConfig, Sink, create_sink_from_config
-from feaflow.source import QuerySourceConfig, Source, create_source_from_config
-
-
-class JobConfig(FeaflowModel):
-    name: constr(regex=r"^[^_]\w+$", strip_whitespace=True, strict=True)
-    schedule_interval: str
-    computes: List[Union[SqlComputeConfig]]
-    engine: str
-    depends_on: Optional[str] = None
-    airflow_dag_args: Optional[Dict[str, Any]] = None
-    sources: Optional[List[Union[QuerySourceConfig]]] = None
-    sinks: Optional[List[Union[RedisSinkConfig]]] = None
+from feaflow.sink import Sink, create_sink_from_config
+from feaflow.source import Source, create_source_from_config
 
 
 def parse_job_config_file(path: Union[str, Path]) -> JobConfig:

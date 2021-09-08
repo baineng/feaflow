@@ -1,7 +1,6 @@
-import pytest
-
 from feaflow.compute import SqlCompute, SqlComputeConfig
-from feaflow.job import JobConfig, Job, scan_jobs_from_project
+from feaflow.job import Job, scan_jobs_from_project
+from feaflow.model import JobConfig
 from feaflow.sink import RedisSink, RedisSinkConfig
 from feaflow.source import QuerySource, QuerySourceConfig
 

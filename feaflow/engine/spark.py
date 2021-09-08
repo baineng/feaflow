@@ -1,7 +1,9 @@
 from pydantic.typing import Literal
+from pyspark.sql import SparkSession
 
+from feaflow.engine import Engine
 from feaflow.job import Job
-from feaflow.model import Engine, EngineConfig
+from feaflow.model import EngineConfig
 
 
 class SparkEngineConfig(EngineConfig):

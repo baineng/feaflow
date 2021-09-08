@@ -12,6 +12,6 @@ class ConfigLoadException(FeaflowException):
         super().__init__(f"Could not load config file '{config_path}`")
 
 
-class EngineImportException(Exception):
-    def __init__(self, engine_config_class_name: str):
-        super().__init__(f"Can not import engine config '{engine_config_class_name}'")
+class ClassImportException(Exception):
+    def __init__(self, class_name: str):
+        super().__init__(f"Could not import class '{class_name}'")

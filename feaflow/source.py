@@ -3,14 +3,10 @@ from typing import Optional
 
 from pydantic.typing import Literal
 
-from feaflow.model import ComponentConfig
+from feaflow.model import SourceConfig
 
 
 class Source(ABC):
-    pass
-
-
-class SourceConfig(ComponentConfig, ABC):
     pass
 
 

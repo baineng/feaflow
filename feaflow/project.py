@@ -1,20 +1,11 @@
-import importlib
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Union
 
 import yaml
-from pydantic import DirectoryPath, FilePath, constr
 
-from feaflow import exceptions
 from feaflow.exceptions import ConfigLoadException
-from feaflow.model import EngineConfig, FeaflowModel
-
-
-class ProjectConfig(FeaflowModel):
-    name: constr(regex=r"^[^_][\w ]+$", strip_whitespace=True, strict=True)
-    root_path: DirectoryPath
-    config_file_path: FilePath
-    engines: List[EngineConfig]
+from feaflow.model import BUILTIN_ENGINES, EngineConfig, ProjectConfig
+from feaflow.utils import create_config_from_dict
 
 
 def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
@@ -33,7 +24,9 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
             config = yaml.safe_load(f)
 
             assert "engines" in config and type(config["engines"]) == list
-            engines = [parse_engine_config(ec) for ec in config["engines"]]
+            engines = [
+                create_config_from_dict(ec, BUILTIN_ENGINES) for ec in config["engines"]
+            ]
 
             project_config = ProjectConfig(
                 name=config["project_name"],
@@ -44,27 +37,6 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
             return project_config
     except Exception:
         raise ConfigLoadException(str(config_file_path.absolute()))
-
-
-BUILTIN_ENGINES = {"spark": "feaflow.engine.spark.SparkEngineConfig"}
-
-
-def parse_engine_config(config: Dict[str, Any]) -> EngineConfig:
-    assert "type" in config
-    engine_type = str(config["type"]).strip().lower()
-    engine_config_class_name = (
-        BUILTIN_ENGINES[engine_type] if engine_type in BUILTIN_ENGINES else engine_type
-    )
-
-    module_name, class_name = engine_config_class_name.rsplit(".", 1)
-    try:
-        module = importlib.import_module(module_name)
-        engine_config_class = getattr(module, class_name)
-    except Exception:
-        raise exceptions.EngineImportException(engine_config_class_name)
-
-    assert issubclass(engine_config_class, EngineConfig)
-    return engine_config_class(**config)
 
 
 class Project:

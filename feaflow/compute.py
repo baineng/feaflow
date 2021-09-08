@@ -2,14 +2,10 @@ from abc import ABC
 
 from pydantic.typing import Literal
 
-from feaflow.model import ComponentConfig
+from feaflow.model import ComputeConfig
 
 
 class Compute(ABC):
-    pass
-
-
-class ComputeConfig(ComponentConfig, ABC):
     pass
 
 

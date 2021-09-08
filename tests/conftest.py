@@ -7,7 +7,7 @@ from feaflow.project import Project
 
 @pytest.fixture
 def example_project_path():
-    return Path(__file__).parent.joinpath("data/example_project")
+    return Path(__file__).parent.joinpath("example_project")
 
 
 @pytest.fixture
