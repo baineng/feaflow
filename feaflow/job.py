@@ -5,7 +5,7 @@ import yaml
 from pydantic import constr
 
 from feaflow.compute import Compute, SqlComputeConfig, create_compute_from_config
-from feaflow.exceptions import ConfigException
+from feaflow.exceptions import ConfigLoadException
 from feaflow.model import FeaflowModel
 from feaflow.project import Project
 from feaflow.sink import RedisSinkConfig, Sink, create_sink_from_config
@@ -32,8 +32,22 @@ def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
         with open(job_conf_path) as f:
             config = yaml.safe_load(f)
             return JobConfig(**config)
-    except Exception as ex:
-        raise ConfigException(ex, str(job_conf_path.absolute()))
+    except Exception:
+        raise ConfigLoadException(str(job_conf_path.absolute()))
+
+
+def scan_jobs_from_project(project: Project) -> List[JobConfig]:
+    """
+    Scan jobs in the project root path,
+    any yaml files start or end with "job" will be considered as a job config file.
+    """
+    root_path = project.root_path
+    jobs_1 = [f.resolve() for f in root_path.glob("**/job*.yaml") if f.is_file()]
+    jobs_2 = [f.resolve() for f in root_path.glob("**/*job.yaml") if f.is_file()]
+    job_conf_files = set(jobs_1 + jobs_2)
+
+    jobs = [parse_job_config_file(f) for f in job_conf_files]
+    return jobs
 
 
 class Job:

@@ -1,20 +1,20 @@
+import importlib
 from pathlib import Path
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
 
-from feaflow.engine.spark import SparkEngineConfig
-from feaflow.exceptions import ConfigException
-from feaflow.job import JobConfig, parse_job_config_file
-from feaflow.model import FeaflowModel
+from feaflow import exceptions
+from feaflow.exceptions import ConfigLoadException
+from feaflow.model import EngineConfig, FeaflowModel
 
 
 class ProjectConfig(FeaflowModel):
     name: constr(regex=r"^[^_][\w ]+$", strip_whitespace=True, strict=True)
     root_path: DirectoryPath
     config_file_path: FilePath
-    engines: List[Union[SparkEngineConfig]]
+    engines: List[EngineConfig]
 
 
 def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
@@ -32,18 +32,39 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
         with open(config_file_path) as f:
             config = yaml.safe_load(f)
 
-            project_name = config["project_name"]
-            del config["project_name"]
+            assert "engines" in config and type(config["engines"]) == list
+            engines = [parse_engine_config(ec) for ec in config["engines"]]
 
             project_config = ProjectConfig(
-                name=project_name,
+                name=config["project_name"],
                 root_path=root_path,
                 config_file_path=config_file_path,
-                **config,
+                engines=engines,
             )
             return project_config
-    except Exception as ex:
-        raise ConfigException(ex, str(config_file_path.absolute()))
+    except Exception:
+        raise ConfigLoadException(str(config_file_path.absolute()))
+
+
+BUILTIN_ENGINES = {"spark": "feaflow.engine.spark.SparkEngineConfig"}
+
+
+def parse_engine_config(config: Dict[str, Any]) -> EngineConfig:
+    assert "type" in config
+    engine_type = str(config["type"]).strip().lower()
+    engine_config_class_name = (
+        BUILTIN_ENGINES[engine_type] if engine_type in BUILTIN_ENGINES else engine_type
+    )
+
+    module_name, class_name = engine_config_class_name.rsplit(".", 1)
+    try:
+        module = importlib.import_module(module_name)
+        engine_config_class = getattr(module, class_name)
+    except Exception:
+        raise exceptions.EngineImportException(engine_config_class_name)
+
+    assert issubclass(engine_config_class, EngineConfig)
+    return engine_config_class(**config)
 
 
 class Project:
@@ -61,23 +82,3 @@ class Project:
     @property
     def root_path(self):
         return self.config.root_path
-
-    def scan_jobs(self) -> List[JobConfig]:
-        """
-        Scan jobs in the project root path,
-        any yaml files start or end with "job" will be considered as a job config file.
-        """
-        jobs_1 = [
-            f.resolve()
-            for f in self.config.root_path.glob("**/job*.yaml")
-            if f.is_file()
-        ]
-        jobs_2 = [
-            f.resolve()
-            for f in self.config.root_path.glob("**/*job.yaml")
-            if f.is_file()
-        ]
-        job_conf_files = set(jobs_1 + jobs_2)
-
-        jobs = [parse_job_config_file(f) for f in job_conf_files]
-        return jobs

@@ -11,7 +11,7 @@ CLI_REQUIRES = []
 
 AIRFLOW_REQUIRES = []
 
-SPARK_REQUIRES = []
+SPARK_REQUIRES = ["pyspark>=2.4.3"]
 
 DEV_REQUIRES = [
     "flake8",

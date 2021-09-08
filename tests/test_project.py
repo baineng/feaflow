@@ -1,11 +1,7 @@
 import pytest
 
-from feaflow.compute import SqlComputeConfig
-from feaflow.exceptions import ConfigException
-from feaflow.job import JobConfig
+from feaflow.exceptions import ConfigLoadException
 from feaflow.project import Project
-from feaflow.sink import RedisSinkConfig
-from feaflow.source import QuerySourceConfig
 
 
 def test_create_project(example_project_path):
@@ -24,20 +20,5 @@ def test_invalid_project(tmpdir):
     """
     with open(tmpdir.join("feaflow.yaml"), "w") as f:
         f.write(invalid_config_file)
-    with pytest.raises(ConfigException):
+    with pytest.raises(ConfigLoadException):
         Project(tmpdir)
-
-
-def test_scan_jobs(example_project):
-    jobs = example_project.scan_jobs()
-    assert len(jobs) == 1
-
-    test_job1: JobConfig = next(filter(lambda j: j.name == "test_job1", jobs))
-    assert test_job1.schedule_interval == "0 6 * * *"
-    assert test_job1.engine == "default_spark"
-    assert type(test_job1.sources[0]) == QuerySourceConfig
-    assert test_job1.sources[0].alias == "daily_events"
-    assert type(test_job1.computes[0]) == SqlComputeConfig
-    assert type(test_job1.sinks[0]) == RedisSinkConfig
-    assert test_job1.sinks[0].host == "127.0.0.1"
-    assert test_job1.sinks[0].port == 6380

@@ -1,21 +1,17 @@
 class FeaflowException(Exception):
-    def __init__(self, *args, **kwargs):
-        pass
+    pass
 
 
 class NotAllowedException(FeaflowException):
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, msg):
+        super().__init__(msg)
 
 
-class ConfigException(FeaflowException):
-    def __init__(self, err_msg, config_path):
-        self._err_msg = err_msg
-        self._config_path = config_path
-        super().__init__(self._err_msg)
+class ConfigLoadException(FeaflowException):
+    def __init__(self, config_path: str):
+        super().__init__(f"Could not load config file '{config_path}`")
 
-    def __str__(self) -> str:
-        return f"{self._err_msg}\nat {self._config_path}"
 
-    def __repr__(self) -> str:
-        return f"ConfigException({repr(self._err_msg)}, {repr(self._config_path)})"
+class EngineImportException(Exception):
+    def __init__(self, engine_config_class_name: str):
+        super().__init__(f"Can not import engine config '{engine_config_class_name}'")
