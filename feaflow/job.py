@@ -4,11 +4,11 @@ from typing import Any, Dict, List, Optional, Union
 import yaml
 from pydantic import constr
 
-from feaflow.compute import SqlComputeConfig
+from feaflow.compute import Compute, SqlComputeConfig, create_compute_from_config
 from feaflow.exceptions import ConfigException
 from feaflow.model import Engine, FeaflowModel
-from feaflow.sink import RedisSinkConfig
-from feaflow.source import QuerySourceConfig
+from feaflow.sink import RedisSinkConfig, Sink, create_sink_from_config
+from feaflow.source import QuerySourceConfig, Source, create_source_from_config
 
 
 class JobConfig(FeaflowModel):
@@ -38,3 +38,32 @@ def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
 class Job:
     def __init__(self, config: JobConfig):
         self._config = config
+        self._sources = (
+            [create_source_from_config(sc) for sc in config.sources]
+            if config.sources
+            else []
+        )
+        self._computes = (
+            [create_compute_from_config(cc) for cc in config.computes]
+            if config.computes
+            else []
+        )
+        self._sinks = (
+            [create_sink_from_config(sc) for sc in config.sinks] if config.sinks else []
+        )
+
+    @property
+    def config(self) -> JobConfig:
+        return self._config
+
+    @property
+    def sources(self) -> List[Source]:
+        return self._sources
+
+    @property
+    def computes(self) -> List[Compute]:
+        return self._computes
+
+    @property
+    def sinks(self) -> List[Sink]:
+        return self._sinks

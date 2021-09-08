@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from typing_extensions import Literal
 
@@ -9,7 +9,17 @@ class Sink(ABC):
     pass
 
 
-class RedisSinkConfig(ComponentConfig):
+class SinkConfig(ComponentConfig, ABC):
+    pass
+
+
+def create_sink_from_config(config: SinkConfig) -> Sink:
+    impl_class = config.get_impl_cls()
+    assert issubclass(impl_class, Sink)
+    return impl_class(config)
+
+
+class RedisSinkConfig(SinkConfig):
     type: Literal["redis"] = "redis"
     host: str
     port: int = 6379

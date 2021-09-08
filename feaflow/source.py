@@ -10,7 +10,17 @@ class Source(ABC):
     pass
 
 
-class QuerySourceConfig(ComponentConfig):
+class SourceConfig(ComponentConfig, ABC):
+    pass
+
+
+def create_source_from_config(config: SourceConfig) -> Source:
+    impl_class = config.get_impl_cls()
+    assert issubclass(impl_class, Source)
+    return impl_class(config)
+
+
+class QuerySourceConfig(SourceConfig):
     type: Literal["query"] = "query"
     sql: str
     alias: Optional[str] = None

@@ -9,7 +9,17 @@ class Compute(ABC):
     pass
 
 
-class SqlComputeConfig(ComponentConfig):
+class ComputeConfig(ComponentConfig, ABC):
+    pass
+
+
+def create_compute_from_config(config: ComputeConfig) -> Compute:
+    impl_class = config.get_impl_cls()
+    assert issubclass(impl_class, Compute)
+    return impl_class(config)
+
+
+class SqlComputeConfig(ComputeConfig):
     type: Literal["sql"] = "sql"
     sql: str
 
