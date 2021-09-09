@@ -15,7 +15,7 @@ class Engine(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def run(self, job: "feaflow.job.Job"):
+    def run(self, job: "feaflow.project.job"):
         raise NotImplementedError
 
 

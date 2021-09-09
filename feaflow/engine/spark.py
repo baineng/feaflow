@@ -2,7 +2,7 @@ from pydantic.typing import Literal
 from pyspark.sql import SparkSession
 
 from feaflow.abstracts import Engine, EngineConfig
-from feaflow.job import Job
+from feaflow.project import Job
 
 
 class SparkEngineConfig(EngineConfig):

@@ -1,5 +1,5 @@
 import importlib
-from typing import Any, Dict, Type
+from typing import Any, Dict
 
 from feaflow import exceptions
 from feaflow.model import ComponentConfig
