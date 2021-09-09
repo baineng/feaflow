@@ -19,7 +19,7 @@ from feaflow.constants import (
     BUILTIN_SINKS,
     BUILTIN_SOURCES,
 )
-from feaflow.exceptions import ConfigLoadException
+from feaflow.exceptions import ConfigLoadError
 from feaflow.model import FeaflowModel
 from feaflow.project import Project
 from feaflow.utils import create_config_from_dict
@@ -102,6 +102,9 @@ class Job:
     def sinks(self) -> List[Sink]:
         return self._sinks
 
+    def __repr__(self):
+        return f"Job({self._config.name})"
+
 
 def scan_jobs_from_project(project: Project) -> List[JobConfig]:
     """
@@ -127,4 +130,4 @@ def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
             config = yaml.safe_load(f)
             return JobConfig(**config)
     except Exception:
-        raise ConfigLoadException(str(job_conf_path.absolute()))
+        raise ConfigLoadError(str(job_conf_path.absolute()))

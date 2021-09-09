@@ -11,7 +11,7 @@ def get_class_from_name(class_name: str):
         module = importlib.import_module(module_name)
         return getattr(module, class_name)
     except Exception:
-        raise exceptions.ClassImportException(class_name)
+        raise exceptions.ClassImportError(class_name)
 
 
 # TODO generic function

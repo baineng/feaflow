@@ -6,7 +6,7 @@ from pydantic import DirectoryPath, FilePath, constr
 
 from feaflow.abstracts import EngineConfig
 from feaflow.constants import BUILTIN_ENGINES
-from feaflow.exceptions import ConfigLoadException
+from feaflow.exceptions import ConfigLoadError
 from feaflow.model import FeaflowModel
 from feaflow.utils import create_config_from_dict
 
@@ -64,4 +64,4 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
             config["config_file_path"] = config_file_path
             return ProjectConfig(**config)
     except Exception:
-        raise ConfigLoadException(str(config_file_path.absolute()))
+        raise ConfigLoadError(str(config_file_path.absolute()))

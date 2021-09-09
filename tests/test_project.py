@@ -1,6 +1,6 @@
 import pytest
 
-from feaflow.exceptions import ConfigLoadException
+from feaflow.exceptions import ConfigLoadError
 from feaflow.project import Project
 
 
@@ -20,5 +20,5 @@ def test_invalid_project(tmpdir):
     """
     with open(tmpdir.join("feaflow.yaml"), "w") as f:
         f.write(invalid_config_file)
-    with pytest.raises(ConfigLoadException):
+    with pytest.raises(ConfigLoadError):
         Project(tmpdir)
