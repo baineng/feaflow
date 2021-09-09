@@ -1,9 +1,12 @@
 from typing import Optional
 
+from pydantic.typing import Literal
+
 from feaflow.abstracts import Scheduler, SchedulerConfig
 
 
 class AirflowSchedulerConfig(SchedulerConfig):
+    type: Literal["airflow"] = "airflow"
     schedule_interval: str
     depends_on: Optional[str] = None
     start_date: Optional[str] = None
