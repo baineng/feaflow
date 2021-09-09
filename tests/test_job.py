@@ -1,8 +1,7 @@
-from feaflow.compute import SqlCompute, SqlComputeConfig
-from feaflow.job import Job, scan_jobs_from_project
-from feaflow.model import JobConfig
-from feaflow.sink import RedisSink, RedisSinkConfig
-from feaflow.source import QuerySource, QuerySourceConfig
+from feaflow.computes import SqlCompute, SqlComputeConfig
+from feaflow.job import Job, scan_jobs_from_project, JobConfig
+from feaflow.sinks import RedisSink, RedisSinkConfig
+from feaflow.sources import QuerySource, QuerySourceConfig
 
 
 def test_scan_jobs(example_project):
@@ -10,7 +9,7 @@ def test_scan_jobs(example_project):
     assert len(jobs) == 1
 
     test_job1: JobConfig = next(filter(lambda j: j.name == "test_job1", jobs))
-    assert test_job1.schedule_interval == "0 6 * * *"
+    assert test_job1.scheduler.schedule_interval == "0 6 * * *"
     assert test_job1.engine == "default_spark"
     assert type(test_job1.sources[0]) == QuerySourceConfig
     assert test_job1.sources[0].alias == "daily_events"

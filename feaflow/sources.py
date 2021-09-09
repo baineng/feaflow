@@ -1,21 +1,8 @@
-from abc import ABC
 from typing import Optional
 
 from pydantic.typing import Literal
 
-from feaflow.model import SourceConfig
-
-BUILTIN_SOURCES = {"query": "feaflow.source.QuerySourceConfig"}
-
-
-class Source(ABC):
-    pass
-
-
-def create_source_from_config(config: SourceConfig) -> Source:
-    impl_class = config.get_impl_cls()
-    assert issubclass(impl_class, Source)
-    return impl_class(config)
+from feaflow.abstracts import Source, SourceConfig
 
 
 class QuerySourceConfig(SourceConfig):
@@ -23,9 +10,8 @@ class QuerySourceConfig(SourceConfig):
     sql: str
     alias: Optional[str] = None
 
-    @classmethod
-    def get_impl_cls(cls):
-        return QuerySource
+    def create_impl_instance(self):
+        return QuerySource(self)
 
 
 class QuerySource(Source):

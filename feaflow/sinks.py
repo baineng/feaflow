@@ -1,20 +1,6 @@
-from abc import ABC
-
 from pydantic.typing import Literal
 
-from feaflow.model import SinkConfig
-
-BUILTIN_SINKS = {"redis": "feaflow.sink.RedisSinkConfig"}
-
-
-class Sink(ABC):
-    pass
-
-
-def create_sink_from_config(config: SinkConfig) -> Sink:
-    impl_class = config.get_impl_cls()
-    assert issubclass(impl_class, Sink)
-    return impl_class(config)
+from feaflow.abstracts import Sink, SinkConfig
 
 
 class RedisSinkConfig(SinkConfig):
@@ -23,9 +9,8 @@ class RedisSinkConfig(SinkConfig):
     port: int = 6379
     db: int = 0
 
-    @classmethod
-    def get_impl_cls(cls):
-        return RedisSink
+    def create_impl_instance(self):
+        return RedisSink(self)
 
 
 class RedisSink(Sink):

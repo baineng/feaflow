@@ -1,29 +1,14 @@
-from abc import ABC
-
 from pydantic.typing import Literal
 
-from feaflow.model import ComputeConfig
-
-BUILTIN_COMPUTES = {"sql": "feaflow.compute.SqlComputeConfig"}
-
-
-class Compute(ABC):
-    pass
-
-
-def create_compute_from_config(config: ComputeConfig) -> Compute:
-    impl_class = config.get_impl_cls()
-    assert issubclass(impl_class, Compute)
-    return impl_class(config)
+from feaflow.abstracts import Compute, ComputeConfig
 
 
 class SqlComputeConfig(ComputeConfig):
     type: Literal["sql"] = "sql"
     sql: str
 
-    @classmethod
-    def get_impl_cls(cls):
-        return SqlCompute
+    def create_impl_instance(self):
+        return SqlCompute(self)
 
 
 class SqlCompute(Compute):

@@ -1,17 +1,15 @@
 from pydantic.typing import Literal
 from pyspark.sql import SparkSession
 
-from feaflow.engine.engine import Engine
+from feaflow.abstracts import Engine, EngineConfig
 from feaflow.job import Job
-from feaflow.model import EngineConfig
 
 
 class SparkEngineConfig(EngineConfig):
     type: Literal["spark"] = "spark"
 
-    @classmethod
-    def get_impl_cls(cls):
-        return SparkEngine
+    def create_impl_instance(self):
+        return SparkEngine(self)
 
 
 class SparkEngine(Engine):
