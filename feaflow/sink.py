@@ -4,6 +4,8 @@ from pydantic.typing import Literal
 
 from feaflow.model import SinkConfig
 
+BUILTIN_SINKS = {"redis": "feaflow.sink.RedisSinkConfig"}
+
 
 class Sink(ABC):
     pass

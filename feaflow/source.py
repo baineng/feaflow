@@ -5,6 +5,8 @@ from pydantic.typing import Literal
 
 from feaflow.model import SourceConfig
 
+BUILTIN_SOURCES = {"query": "feaflow.source.QuerySourceConfig"}
+
 
 class Source(ABC):
     pass

@@ -3,8 +3,9 @@ from typing import Union
 
 import yaml
 
+from feaflow.engine import BUILTIN_ENGINES
 from feaflow.exceptions import ConfigLoadException
-from feaflow.model import BUILTIN_ENGINES, EngineConfig, ProjectConfig
+from feaflow.model import ProjectConfig
 from feaflow.utils import create_config_from_dict
 
 

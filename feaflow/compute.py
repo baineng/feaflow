@@ -4,6 +4,8 @@ from pydantic.typing import Literal
 
 from feaflow.model import ComputeConfig
 
+BUILTIN_COMPUTES = {"sql": "feaflow.compute.SqlComputeConfig"}
+
 
 class Compute(ABC):
     pass

@@ -3,12 +3,13 @@ from typing import List, Union
 
 import yaml
 
-from feaflow.compute import Compute, create_compute_from_config
+from feaflow.compute import BUILTIN_COMPUTES, Compute, create_compute_from_config
 from feaflow.exceptions import ConfigLoadException
 from feaflow.model import JobConfig
 from feaflow.project import Project
-from feaflow.sink import Sink, create_sink_from_config
-from feaflow.source import Source, create_source_from_config
+from feaflow.sink import BUILTIN_SINKS, Sink, create_sink_from_config
+from feaflow.source import BUILTIN_SOURCES, Source, create_source_from_config
+from feaflow.utils import create_config_from_dict
 
 
 def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
@@ -19,6 +20,24 @@ def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
     try:
         with open(job_conf_path) as f:
             config = yaml.safe_load(f)
+            if "sources" in config:
+                assert type(config["sources"]) == list
+                config["sources"] = [
+                    create_config_from_dict(c, BUILTIN_SOURCES)
+                    for c in config["sources"]
+                ]
+            if "computes" in config:
+                assert type(config["computes"]) == list
+                config["computes"] = [
+                    create_config_from_dict(c, BUILTIN_COMPUTES)
+                    for c in config["computes"]
+                ]
+
+            if "sinks" in config:
+                assert type(config["sinks"]) == list
+                config["sinks"] = [
+                    create_config_from_dict(c, BUILTIN_SINKS) for c in config["sinks"]
+                ]
             return JobConfig(**config)
     except Exception:
         raise ConfigLoadException(str(job_conf_path.absolute()))

@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, DirectoryPath, FilePath, constr
-
-from feaflow.compute import SqlComputeConfig
-from feaflow.sink import RedisSinkConfig
-from feaflow.source import QuerySourceConfig
 
 
 class FeaflowModel(BaseModel):
@@ -58,6 +54,3 @@ class JobConfig(FeaflowModel):
     airflow_dag_args: Optional[Dict[str, Any]] = None
     sources: Optional[List[SourceConfig]] = None
     sinks: Optional[List[SinkConfig]] = None
-
-
-BUILTIN_ENGINES = {"spark": "feaflow.engine.spark.SparkEngineConfig"}
