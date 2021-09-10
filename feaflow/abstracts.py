@@ -19,13 +19,13 @@ class FeaflowComponent(ABC):
     @classmethod
     @abstractmethod
     def create_config(cls, **data):
-        """ :return: FeaflowConfig """
+        """ :rtype: `feaflow.abstracts.FeaflowConfig` """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def config(self):
-        """ :return: FeaflowConfig """
+        """ :rtype: `feaflow.abstracts.FeaflowConfig` """
         raise NotImplementedError
 
     def __init__(self, config):
@@ -59,7 +59,24 @@ class SinkConfig(FeaflowConfig, ABC):
 
 class Engine(FeaflowComponent):
     @abstractmethod
-    def run(self, job: "feaflow.job.Job"):
+    def new_session(self):
+        """ :rtype: `feaflow.abstracts.EngineSession` """
+        raise NotImplementedError
+
+
+class EngineSession(ABC):
+    @abstractmethod
+    def run(self, job):
+        """ :type job: `feaflow.job.Job` """
+        raise NotImplementedError
+
+    @abstractmethod
+    def __enter__(self):
+        """ :rtype: `feaflow.abstracts.EngineSession` """
+        raise NotImplementedError
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
         raise NotImplementedError
 
 

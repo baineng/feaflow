@@ -91,6 +91,10 @@ class Job:
         return self._config
 
     @property
+    def name(self) -> str:
+        return self._config.name
+
+    @property
     def engine(self) -> str:
         return self._config.engine
 

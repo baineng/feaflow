@@ -11,20 +11,19 @@ scheduler:
 sources:
   - type: query
     sql: >-
-      SELECT id, title, actor, target
+      SELECT id, title, published
       FROM events
-      WHERE pt_date="{{ ds }}"
     alias: daily_events
 
 computes:
   - type: sql
     sql: >-
-      SELECT actor.id, count(*) as daily_amount
+      SELECT title, count(*) as amount
       FROM daily_events
-      GROUP BY actor.id
+      GROUP BY title
 
 sinks:
   - type: table
     name: feaflow_table_sink_test
     mode: append
-    cols: id as tid, daily_amount
+    cols: title, amount
