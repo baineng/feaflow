@@ -7,14 +7,22 @@ from feaflow.abstracts import Sink, SinkConfig
 
 
 class TableSinkMode(str, Enum):
-    append = "append"
-    overwrite = "overwrite"
+    APPEND = "append"
+    OVERWRITE = "overwrite"
+
+
+class TableSinkFormat(str, Enum):
+    JSON = "json"
+    CSV = "csv"
+    PARQUET = "parquet"
+    ORC = "orc"
 
 
 class TableSinkConfig(SinkConfig):
     type: Literal["table"]
     name: str
-    mode: TableSinkMode = TableSinkMode.append
+    mode: TableSinkMode = TableSinkMode.APPEND
+    format: TableSinkFormat = TableSinkFormat.PARQUET
     cols: Optional[str] = None
     partition_cols: Optional[str] = None
 

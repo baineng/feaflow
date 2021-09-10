@@ -10,10 +10,10 @@ scheduler:
 
 sources:
   - type: query
+    alias: daily_events
     sql: >-
       SELECT id, title, published
       FROM events
-    alias: daily_events
 
 computes:
   - type: sql
@@ -25,5 +25,6 @@ computes:
 sinks:
   - type: table
     name: feaflow_table_sink_test
-    mode: append
+    mode: overwrite
     cols: title, amount
+    format: orc

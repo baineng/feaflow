@@ -1,3 +1,6 @@
+import random
+import time
+
 import numpy as np
 import pandas as pd
 
@@ -11,7 +14,13 @@ def test_run_job1(example_project):
 
     job_confs = scan_jobs_from_project(example_project)
     test_job1_conf: JobConfig = next(filter(lambda j: j.name == "test_job1", job_confs))
-    test_job1 = Job(example_project, test_job1_conf)
+    temp_sink_table = f"feaflow_table_sink_test_test_{int(time.time_ns())}_{random.randint(1000, 9999)}"
+    new_conf = test_job1_conf.copy(
+        update={
+            "sinks": [test_job1_conf.sinks[0].copy(update={"name": temp_sink_table})]
+        }
+    )
+    test_job1 = Job(example_project, new_conf)
 
     original_data = pd.DataFrame(
         {
@@ -32,6 +41,12 @@ def test_run_job1(example_project):
         origin_df.printSchema()
         origin_df.show()
 
-        sink_df = spark_session.table("feaflow_table_sink_test")
+        session.run(test_job1)
+
+        sink_df = spark_session.table(temp_sink_table)
         sink_df.printSchema()
         sink_df.show()
+
+        spark_session.sql(f"desc formatted {temp_sink_table}").show(100, False)
+
+        time.sleep(3)

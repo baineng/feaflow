@@ -1,14 +1,15 @@
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from pydantic.typing import Literal
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
-from feaflow.abstracts import Engine, EngineConfig, EngineSession, Source
+from feaflow.abstracts import Engine, EngineConfig, EngineSession
 from feaflow.computes import SqlCompute
 from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
 from feaflow.sinks import TableSink
 from feaflow.sources import QuerySource
+from feaflow.utils import split_cols
 
 
 class SparkEngineConfig(EngineConfig):
@@ -67,10 +68,17 @@ class SparkEngineSession(EngineSession):
 
         for sink in job.sinks:
             if isinstance(sink, TableSink):
+                table_sink_config = sink.config
                 table_sink_df = computed_df
                 if sink.config.cols:
-                    table_sink_df.selectExpr(sink.config.cols)
-                table_sink_df.write.mode(sink.config.mode).saveAsTable(sink.config.name)
+                    table_sink_df.selectExpr(*split_cols(sink.config.cols))
+
+                table_sink_writer: DataFrameWriter = (
+                    table_sink_df.write.mode(table_sink_config.mode.value).format(
+                        table_sink_config.format.value
+                    )
+                )
+                table_sink_writer.saveAsTable(table_sink_config.name)
 
     def _create_spark_session(self, job_name: str) -> SparkSession:
         engine_config = self._engine.config

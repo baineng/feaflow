@@ -1,5 +1,5 @@
 import importlib
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from feaflow import exceptions
 from feaflow.abstracts import FeaflowComponent, FeaflowConfig
@@ -38,3 +38,7 @@ def create_config_from_dict(
 
 def create_instance_from_config(config: FeaflowConfig) -> FeaflowComponent:
     return config.impl_cls(config)
+
+
+def split_cols(cols: str) -> List[str]:
+    return list(map(str.strip, cols.split(",")))
