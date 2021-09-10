@@ -10,26 +10,25 @@ from feaflow.sources import QuerySource
 
 
 class SparkEngineConfig(EngineConfig):
-    type: Literal["spark"] = "spark"
+    type: Literal["spark"]
     master: str = "local"
     enable_hive_support: bool = False
     config: Optional[Dict[str, str]] = None
     job_name_prefix: Optional[str] = None
 
-    def create_impl_instance(self):
-        return SparkEngine(self)
-
 
 class SparkEngine(Engine):
+    @classmethod
+    def create_config(cls, **data):
+        return SparkEngineConfig(impl_cls=cls, **data)
+
     def __init__(self, config: SparkEngineConfig):
+        assert isinstance(config, SparkEngineConfig)
         self._config = config
 
     @property
     def config(self) -> SparkEngineConfig:
         return self._config
-
-    def init(self):
-        pass
 
     def _create_new_session(self) -> SparkSession:
         try:
@@ -43,6 +42,9 @@ class SparkEngine(Engine):
         except Exception:
             raise EngineInitError(self._config.type)
 
+    def _get_session(self) -> SparkSession:
+        return self._create_new_session()
+
     def run(self, job: Job):
         assert (
             job.engine == self._config.name
@@ -51,6 +53,10 @@ class SparkEngine(Engine):
         self.handle_sources(job.sources)
 
     def handle_sources(self, sources: List[Source]):
+        spark = self._get_session()
+
         for source in sources:
             if isinstance(source, QuerySource):
-                pass
+                df = spark.sql(source.sql)
+                if source.alias:
+                    df.createOrReplaceTempView(source.alias)

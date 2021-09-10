@@ -1,7 +1,7 @@
-from feaflow.computes import SqlComputeConfig, SqlCompute
+from feaflow.computes import SqlCompute, SqlComputeConfig
 from feaflow.job import JobConfig, Job, scan_jobs_from_project
-from feaflow.sinks import RedisSinkConfig, RedisSink
-from feaflow.sources import QuerySourceConfig, QuerySource
+from feaflow.sinks import RedisSink, RedisSinkConfig
+from feaflow.sources import QuerySource, QuerySourceConfig
 
 
 def test_scan_jobs(example_project):

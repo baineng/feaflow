@@ -7,6 +7,7 @@ from pydantic import constr
 from feaflow.abstracts import (
     Compute,
     ComputeConfig,
+    FeaflowModel,
     SchedulerConfig,
     Sink,
     SinkConfig,
@@ -20,9 +21,8 @@ from feaflow.constants import (
     BUILTIN_SOURCES,
 )
 from feaflow.exceptions import ConfigLoadError
-from feaflow.model import FeaflowModel
 from feaflow.project import Project
-from feaflow.utils import create_config_from_dict
+from feaflow.utils import create_config_from_dict, create_instance_from_config
 
 
 class JobConfig(FeaflowModel):
@@ -67,15 +67,19 @@ class Job:
         self._project = project
         self._config = config
         self._sources = (
-            [c.create_impl_instance() for c in config.sources] if config.sources else []
+            [create_instance_from_config(c) for c in config.sources]
+            if config.sources
+            else []
         )
         self._computes = (
-            [c.create_impl_instance() for c in config.computes]
+            [create_instance_from_config(c) for c in config.computes]
             if config.computes
             else []
         )
         self._sinks = (
-            [c.create_impl_instance() for c in config.sinks] if config.sinks else []
+            [create_instance_from_config(c) for c in config.sinks]
+            if config.sinks
+            else []
         )
 
     @property

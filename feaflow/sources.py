@@ -6,15 +6,16 @@ from feaflow.abstracts import Source, SourceConfig
 
 
 class QuerySourceConfig(SourceConfig):
-    type: Literal["query"] = "query"
+    type: Literal["query"]
     sql: str
     alias: Optional[str] = None
 
-    def create_impl_instance(self):
-        return QuerySource(self)
-
 
 class QuerySource(Source):
+    @classmethod
+    def create_config(cls, **data):
+        return QuerySourceConfig(impl_cls=cls, **data)
+
     def __init__(self, config: QuerySourceConfig):
         assert isinstance(config, QuerySourceConfig)
         self._config = config

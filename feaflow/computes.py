@@ -4,14 +4,15 @@ from feaflow.abstracts import Compute, ComputeConfig
 
 
 class SqlComputeConfig(ComputeConfig):
-    type: Literal["sql"] = "sql"
+    type: Literal["sql"]
     sql: str
-
-    def create_impl_instance(self):
-        return SqlCompute(self)
 
 
 class SqlCompute(Compute):
+    @classmethod
+    def create_config(cls, **data):
+        return SqlComputeConfig(impl_cls=cls, **data)
+
     def __init__(self, config: SqlComputeConfig):
         assert isinstance(config, SqlComputeConfig)
         self._config = config

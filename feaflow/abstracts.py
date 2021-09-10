@@ -1,51 +1,71 @@
 from abc import ABC, abstractmethod
+from typing import Any, Type
 
-from pydantic import constr
-
-from feaflow.model import ComponentConfig
+from pydantic import BaseModel, constr
 
 
-class EngineConfig(ComponentConfig, ABC):
+class FeaflowModel(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+        underscore_attrs_are_private = True
+
+
+class FeaflowImmutableModel(FeaflowModel):
+    class Config:
+        allow_mutation = False
+
+
+class FeaflowConfig(FeaflowImmutableModel, ABC):
+    impl_cls: Any
+
+
+class FeaflowComponent(ABC):
+    @classmethod
+    @abstractmethod
+    def create_config(cls, **data):
+        raise NotImplementedError
+
+    def __init__(self, config: FeaflowConfig):
+        raise NotImplementedError
+
+
+class EngineConfig(FeaflowConfig, ABC):
     name: constr(regex=r"^[^_][\w]+$", strip_whitespace=True, strict=True)
 
 
-class Engine(ABC):
-    @abstractmethod
-    def init(self):
-        raise NotImplementedError
-
+class Engine(FeaflowComponent):
     @abstractmethod
     def run(self, job: "feaflow.job.Job"):
         raise NotImplementedError
 
 
-class SchedulerConfig(ComponentConfig, ABC):
+class SchedulerConfig(FeaflowConfig, ABC):
     pass
 
 
-class Scheduler(ABC):
+class Scheduler(FeaflowComponent, ABC):
     pass
 
 
-class SourceConfig(ComponentConfig, ABC):
+class SourceConfig(FeaflowConfig, ABC):
     pass
 
 
-class Source(ABC):
+class Source(FeaflowComponent, ABC):
     pass
 
 
-class ComputeConfig(ComponentConfig, ABC):
+class ComputeConfig(FeaflowConfig, ABC):
     pass
 
 
-class Compute(ABC):
+class Compute(FeaflowComponent, ABC):
     pass
 
 
-class SinkConfig(ComponentConfig, ABC):
+class SinkConfig(FeaflowConfig, ABC):
     pass
 
 
-class Sink(ABC):
+class Sink(FeaflowComponent, ABC):
     pass

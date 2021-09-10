@@ -2,7 +2,7 @@ import importlib
 from typing import Any, Dict
 
 from feaflow import exceptions
-from feaflow.model import ComponentConfig
+from feaflow.abstracts import FeaflowComponent, FeaflowConfig
 
 
 def get_class_from_name(class_name: str):
@@ -17,14 +17,20 @@ def get_class_from_name(class_name: str):
 # TODO generic function
 def create_config_from_dict(
     config_dict: Dict[str, Any], builtin_types: Dict[str, str],
-) -> ComponentConfig:
+) -> FeaflowConfig:
     assert "type" in config_dict
     type_or_class = str(config_dict["type"]).strip().lower()
-    config_class_name = (
+    the_class_name = (
         builtin_types[type_or_class]
         if type_or_class in builtin_types
         else type_or_class
     )
-    config_class = get_class_from_name(config_class_name)
-    assert issubclass(config_class, ComponentConfig)
-    return config_class(**config_dict)
+    the_class = get_class_from_name(the_class_name)
+    assert issubclass(the_class, FeaflowComponent)
+    the_config = the_class.create_config(**config_dict)
+    assert isinstance(the_config, FeaflowConfig)
+    return the_config
+
+
+def create_instance_from_config(config: FeaflowConfig) -> FeaflowComponent:
+    return config.impl_cls(config)
