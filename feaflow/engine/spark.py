@@ -1,11 +1,13 @@
 from typing import Dict, List, Optional
 
 from pydantic.typing import Literal
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from feaflow.abstracts import Engine, EngineConfig, Source
+from feaflow.computes import SqlCompute
 from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
+from feaflow.sinks import TableSink
 from feaflow.sources import QuerySource
 
 
@@ -30,7 +32,7 @@ class SparkEngine(Engine):
     def config(self) -> SparkEngineConfig:
         return self._config
 
-    def _create_new_session(self) -> SparkSession:
+    def _get_or_create_session(self) -> SparkSession:
         try:
             builder = SparkSession.builder.master(self._config.master)
             if self._config.enable_hive_support:
@@ -42,21 +44,28 @@ class SparkEngine(Engine):
         except Exception:
             raise EngineInitError(self._config.type)
 
-    def _get_session(self) -> SparkSession:
-        return self._create_new_session()
-
     def run(self, job: Job):
         assert (
             job.engine == self._config.name
         ), f"The job '{job}' is not able to be run on engine '{self._config.name}'."
 
-        self.handle_sources(job.sources)
+        with self._get_or_create_session() as spark:
+            for source in job.sources:
+                if isinstance(source, QuerySource):
+                    df = spark.sql(source.sql)
+                    if source.alias:
+                        df.createOrReplaceTempView(source.alias)
 
-    def handle_sources(self, sources: List[Source]):
-        spark = self._get_session()
+            computed_df: DataFrame = None
+            for compute in job.computes:
+                if isinstance(compute, SqlCompute):
+                    computed_df = spark.sql(compute.sql)
 
-        for source in sources:
-            if isinstance(source, QuerySource):
-                df = spark.sql(source.sql)
-                if source.alias:
-                    df.createOrReplaceTempView(source.alias)
+            for sink in job.sinks:
+                if isinstance(sink, TableSink):
+                    table_sink_df = computed_df
+                    if sink.config.cols:
+                        table_sink_df.selectExpr(sink.config.cols)
+                    table_sink_df.write.mode(sink.config.mode).saveAsTable(
+                        sink.config.name
+                    )

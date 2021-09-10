@@ -1,7 +1,6 @@
 import pytest
 
-from feaflow.sources import QuerySourceConfig, QuerySource
-
+from feaflow.sources import QuerySource, QuerySourceConfig
 
 # def test_pydantic_private_attr(capsys):
 #     config = QuerySourceConfig(sql="...", alias="test_query")

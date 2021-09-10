@@ -24,6 +24,7 @@ computes:
       GROUP BY actor.id
 
 sinks:
-  - type: redis
-    host: 127.0.0.1
-    port: 6380
+  - type: table
+    name: feaflow_table_sink_test
+    mode: append
+    cols: id as tid, daily_amount

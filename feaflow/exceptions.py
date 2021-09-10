@@ -8,8 +8,8 @@ class ConfigLoadError(FeaflowException):
 
 
 class ClassImportError(Exception):
-    def __init__(self, class_name: str):
-        super().__init__(f"Could not import class '{class_name}'")
+    def __init__(self, class_name: str, extra_info: str = ""):
+        super().__init__(f"Could not import class '{class_name}', {extra_info}")
 
 
 class EngineInitError(Exception):

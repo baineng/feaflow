@@ -6,6 +6,11 @@ from feaflow.abstracts import FeaflowComponent, FeaflowConfig
 
 
 def get_class_from_name(class_name: str):
+    if "." not in class_name:
+        raise exceptions.ClassImportError(
+            class_name,
+            "maybe it's a typo or the class name is not a builtin implementation.",
+        )
     module_name, class_name = class_name.rsplit(".", 1)
     try:
         module = importlib.import_module(module_name)
@@ -14,7 +19,6 @@ def get_class_from_name(class_name: str):
         raise exceptions.ClassImportError(class_name)
 
 
-# TODO generic function
 def create_config_from_dict(
     config_dict: Dict[str, Any], builtin_types: Dict[str, str],
 ) -> FeaflowConfig:

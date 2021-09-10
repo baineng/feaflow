@@ -13,15 +13,23 @@ AIRFLOW_REQUIRES = []
 
 SPARK_REQUIRES = ["pyspark>=2.4.3"]
 
-DEV_REQUIRES = [
-    "flake8",
-    "black==19.10b0",
-    "isort>=5",
-    "mypy==0.790",
-    "pytest==6.0.0",
-    "pytest-xdist",
-    "assertpy==1.1",
-] + CLI_REQUIRES + AIRFLOW_REQUIRES + SPARK_REQUIRES
+DEV_REQUIRES = list(
+    set(
+        [
+            "flake8",
+            "black==19.10b0",
+            "isort>=5",
+            "mypy==0.790",
+            "pytest==6.0.0",
+            "pytest-xdist",
+            "assertpy==1.1",
+            "pandas>=1.0.0",
+        ]
+        + CLI_REQUIRES
+        + AIRFLOW_REQUIRES
+        + SPARK_REQUIRES
+    )
+)
 
 setup(
     name="feaflow",
@@ -33,10 +41,8 @@ setup(
     long_description_content_type="text/markdown",
     python_requires=">=3.7.0",
     url="https://github.com/thenetcircle/feaflow",
-    project_urls={
-        "Bug Tracker": "https://github.com/thenetcircle/feaflow/issues",
-    },
-    license='Apache License, Version 2.0',
+    project_urls={"Bug Tracker": "https://github.com/thenetcircle/feaflow/issues",},
+    license="Apache License, Version 2.0",
     packages=["feaflow"],
     install_requires=INSTALL_REQUIRES,
     extras_require={

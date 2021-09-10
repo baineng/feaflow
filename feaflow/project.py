@@ -1,13 +1,13 @@
 from pathlib import Path
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
 
-from feaflow.abstracts import EngineConfig, FeaflowModel
+from feaflow.abstracts import Engine, EngineConfig, FeaflowModel
 from feaflow.constants import BUILTIN_ENGINES
 from feaflow.exceptions import ConfigLoadError
-from feaflow.utils import create_config_from_dict
+from feaflow.utils import create_config_from_dict, create_instance_from_config
 
 
 class ProjectConfig(FeaflowModel):
@@ -24,23 +24,6 @@ class ProjectConfig(FeaflowModel):
             ]
 
         super().__init__(**data)
-
-
-class Project:
-    def __init__(self, path: Union[str, Path]):
-        self._config = create_project_config_from_path(path)
-
-    @property
-    def config(self):
-        return self._config
-
-    @property
-    def name(self):
-        return self.config.name
-
-    @property
-    def root_path(self):
-        return self.config.root_path
 
 
 def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
@@ -64,3 +47,35 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
             return ProjectConfig(**config)
     except Exception:
         raise ConfigLoadError(str(config_file_path.absolute()))
+
+
+class Project:
+    def __init__(self, path: Union[str, Path]):
+        self._config = create_project_config_from_path(path)
+        self._engines = None
+
+    @property
+    def config(self) -> ProjectConfig:
+        return self._config
+
+    @property
+    def name(self) -> str:
+        return self.config.name
+
+    @property
+    def root_path(self) -> Path:
+        return self.config.root_path
+
+    @property
+    def engines(self) -> List[Engine]:
+        if self._engines is None:
+            self._engines = [
+                create_instance_from_config(c) for c in self._config.engines
+            ]
+        return self._engines
+
+    def get_engine(self, engine_name) -> Optional[Engine]:
+        for engine in self.engines:
+            if engine.config.name == engine_name:
+                return engine
+        return None

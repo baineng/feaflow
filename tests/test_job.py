@@ -1,6 +1,6 @@
 from feaflow.computes import SqlCompute, SqlComputeConfig
-from feaflow.job import JobConfig, Job, scan_jobs_from_project
-from feaflow.sinks import RedisSink, RedisSinkConfig
+from feaflow.job import Job, JobConfig, scan_jobs_from_project
+from feaflow.sinks import TableSink, TableSinkConfig
 from feaflow.sources import QuerySource, QuerySourceConfig
 
 
@@ -14,9 +14,8 @@ def test_scan_jobs(example_project):
     assert type(test_job1.sources[0]) == QuerySourceConfig
     assert test_job1.sources[0].alias == "daily_events"
     assert type(test_job1.computes[0]) == SqlComputeConfig
-    assert type(test_job1.sinks[0]) == RedisSinkConfig
-    assert test_job1.sinks[0].host == "127.0.0.1"
-    assert test_job1.sinks[0].port == 6380
+    assert type(test_job1.sinks[0]) == TableSinkConfig
+    assert test_job1.sinks[0].name == "feaflow_table_sink_test"
 
 
 def test_construct_job(example_project):
@@ -35,6 +34,5 @@ def test_construct_job(example_project):
     assert "daily_amount" in job.computes[0].sql
 
     assert len(job.sinks) == 1
-    assert isinstance(job.sinks[0], RedisSink)
-    assert job.sinks[0].host == "127.0.0.1"
-    assert job.sinks[0].port == 6380
+    assert isinstance(job.sinks[0], TableSink)
+    assert job.sinks[0].config.name == "feaflow_table_sink_test"
