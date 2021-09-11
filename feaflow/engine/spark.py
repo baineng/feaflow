@@ -50,7 +50,7 @@ class SparkEngineSession(EngineSession):
     def run(self, job: Job):
         engine_config = self._engine.config
         assert (
-            job.engine == engine_config.name
+            job.engine_name == engine_config.name
         ), f"The job '{job}' is not able to be run on engine '{engine_config.name}'."
 
         spark_session = self.get_or_create_spark_session(job.name)

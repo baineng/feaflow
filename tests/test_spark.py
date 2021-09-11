@@ -5,22 +5,23 @@ import numpy as np
 import pandas as pd
 
 from feaflow.engine.spark import SparkEngine, SparkEngineSession
-from feaflow.job import Job, JobConfig, scan_jobs_from_project
+from feaflow.job import Job, JobConfig
 
 
 def test_run_job1(example_project):
-    engine = example_project.get_engine("default_spark")
+    engine = example_project.get_engine_by_name("default_spark")
     assert type(engine) == SparkEngine
 
-    job_confs = scan_jobs_from_project(example_project)
-    test_job1_conf: JobConfig = next(filter(lambda j: j.name == "test_job1", job_confs))
+    jobs = example_project.scan_jobs()
+    test_job1: Job = next(filter(lambda j: j.name == "test_job1", jobs))
+    test_job1_config = test_job1.config
     temp_sink_table = f"feaflow_table_sink_test_test_{int(time.time_ns())}_{random.randint(1000, 9999)}"
-    new_conf = test_job1_conf.copy(
+    patch_conf = test_job1_config.copy(
         update={
-            "sinks": [test_job1_conf.sinks[0].copy(update={"name": temp_sink_table})]
+            "sinks": [test_job1_config.sinks[0].copy(update={"name": temp_sink_table})]
         }
     )
-    test_job1 = Job(example_project, new_conf)
+    patch_job = Job(patch_conf)
 
     original_data = pd.DataFrame(
         {
@@ -41,7 +42,7 @@ def test_run_job1(example_project):
         origin_df.printSchema()
         origin_df.show()
 
-        session.run(test_job1)
+        session.run(patch_job)
 
         sink_df = spark_session.table(temp_sink_table)
         sink_df.printSchema()

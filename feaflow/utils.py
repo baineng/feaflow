@@ -2,7 +2,7 @@ import importlib
 from typing import Any, Dict, List
 
 from feaflow import exceptions
-from feaflow.abstracts import FeaflowComponent, FeaflowConfig
+from feaflow.abstracts import FeaflowComponent, FeaflowConfig, Scheduler
 
 
 def get_class_from_name(class_name: str):
@@ -30,7 +30,7 @@ def create_config_from_dict(
         else type_or_class
     )
     the_class = get_class_from_name(the_class_name)
-    assert issubclass(the_class, FeaflowComponent)
+    assert issubclass(the_class, FeaflowComponent) or issubclass(the_class, Scheduler)
     the_config = the_class.create_config(**config_dict)
     assert isinstance(the_config, FeaflowConfig)
     return the_config

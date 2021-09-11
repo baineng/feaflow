@@ -32,28 +32,7 @@ class FeaflowComponent(ABC):
         raise NotImplementedError
 
 
-class FeaflowConfig(FeaflowImmutableModel, ABC):
-    impl_cls: Type[FeaflowComponent]
-    type: str
-
-
-class EngineConfig(FeaflowConfig, ABC):
-    name: constr(regex=r"^[^_][\w]+$", strip_whitespace=True, strict=True)
-
-
-class SchedulerConfig(FeaflowConfig, ABC):
-    pass
-
-
-class SourceConfig(FeaflowConfig, ABC):
-    pass
-
-
-class ComputeConfig(FeaflowConfig, ABC):
-    pass
-
-
-class SinkConfig(FeaflowConfig, ABC):
+class Scheduler(ABC):
     pass
 
 
@@ -80,10 +59,6 @@ class EngineSession(ABC):
         raise NotImplementedError
 
 
-class Scheduler(FeaflowComponent, ABC):
-    pass
-
-
 class Source(FeaflowComponent, ABC):
     pass
 
@@ -94,3 +69,29 @@ class Compute(FeaflowComponent, ABC):
 
 class Sink(FeaflowComponent, ABC):
     pass
+
+
+class FeaflowConfig(FeaflowImmutableModel, ABC):
+    impl_cls: Type[FeaflowComponent]
+    type: str
+
+
+class EngineConfig(FeaflowConfig, ABC):
+    impl_cls: Type[Engine]
+    name: constr(regex=r"^[^_][\w]+$", strip_whitespace=True, strict=True)
+
+
+class SchedulerConfig(FeaflowConfig, ABC):
+    impl_cls: Type[Scheduler]
+
+
+class SourceConfig(FeaflowConfig, ABC):
+    impl_cls: Type[Source]
+
+
+class ComputeConfig(FeaflowConfig, ABC):
+    impl_cls: Type[Compute]
+
+
+class SinkConfig(FeaflowConfig, ABC):
+    impl_cls: Type[Sink]

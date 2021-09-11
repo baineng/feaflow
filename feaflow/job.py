@@ -21,7 +21,6 @@ from feaflow.constants import (
     BUILTIN_SOURCES,
 )
 from feaflow.exceptions import ConfigLoadError
-from feaflow.project import Project
 from feaflow.utils import create_config_from_dict, create_instance_from_config
 
 
@@ -63,28 +62,11 @@ class JobConfig(FeaflowModel):
 
 
 class Job:
-    def __init__(self, project: Project, config: JobConfig):
-        self._project = project
+    def __init__(self, config: JobConfig):
         self._config = config
-        self._sources = (
-            [create_instance_from_config(c) for c in config.sources]
-            if config.sources
-            else []
-        )
-        self._computes = (
-            [create_instance_from_config(c) for c in config.computes]
-            if config.computes
-            else []
-        )
-        self._sinks = (
-            [create_instance_from_config(c) for c in config.sinks]
-            if config.sinks
-            else []
-        )
-
-    @property
-    def project(self) -> Project:
-        return self._project
+        self._sources = None
+        self._computes = None
+        self._sinks = None
 
     @property
     def config(self) -> JobConfig:
@@ -95,37 +77,45 @@ class Job:
         return self._config.name
 
     @property
-    def engine(self) -> str:
+    def engine_name(self) -> str:
         return self._config.engine
 
     @property
+    def scheduler_config(self) -> SchedulerConfig:
+        return self._config.scheduler
+
+    @property
     def sources(self) -> List[Source]:
+        if self._sources is None:
+            self._sources = (
+                [create_instance_from_config(c) for c in self._config.sources]
+                if self._config.sources
+                else []
+            )
         return self._sources
 
     @property
     def computes(self) -> List[Compute]:
+        if self._computes is None:
+            self._computes = (
+                [create_instance_from_config(c) for c in self._config.computes]
+                if self._config.computes
+                else []
+            )
         return self._computes
 
     @property
     def sinks(self) -> List[Sink]:
+        if self._sinks is None:
+            self._sinks = (
+                [create_instance_from_config(c) for c in self._config.sinks]
+                if self._config.sinks
+                else []
+            )
         return self._sinks
 
     def __repr__(self):
         return f"Job({self._config.name})"
-
-
-def scan_jobs_from_project(project: Project) -> List[JobConfig]:
-    """
-    Scan jobs in the project root path,
-    any yaml files start or end with "job" will be considered as a job config file.
-    """
-    root_path = project.root_path
-    jobs_1 = [f.resolve() for f in root_path.glob("**/job*.yaml") if f.is_file()]
-    jobs_2 = [f.resolve() for f in root_path.glob("**/*job.yaml") if f.is_file()]
-    job_conf_files = set(jobs_1 + jobs_2)
-
-    jobs = [parse_job_config_file(f) for f in job_conf_files]
-    return jobs
 
 
 def parse_job_config_file(path: Union[str, Path]) -> JobConfig:

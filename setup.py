@@ -9,7 +9,7 @@ INSTALL_REQUIRES = ["pydantic>=1.0.0", "PyYAML>=5.4.*"]
 
 CLI_REQUIRES = []
 
-AIRFLOW_REQUIRES = []
+AIRFLOW_REQUIRES = ["apache-airflow>=2.0.0"]
 
 SPARK_REQUIRES = ["pyspark>=2.4.3"]
 
