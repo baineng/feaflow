@@ -3,11 +3,13 @@ import time
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from feaflow.engine.spark import SparkEngine, SparkEngineSession
 from feaflow.job import Job, JobConfig
 
 
+@pytest.mark.skip
 def test_run_job1(example_project):
     engine = example_project.get_engine_by_name("default_spark")
     assert type(engine) == SparkEngine

@@ -2,11 +2,15 @@ name: test_job1
 engine: default_spark
 
 scheduler:
+  owner: feaflow_test
   schedule_interval: '0 6 * * *'
-  depends_on: test_job2
-  start_date: 20190430
-  catch_up: true
-  retries: 1
+  start_date: 2021-09-10 00:00
+  end_date: 2021-11-01 00:00
+  catchup: true
+  dagrun_timeout: 300 # seconds
+  depends_on_past: true
+  retries: 2
+  retry_delay: 10 # seconds
 
 sources:
   - type: query

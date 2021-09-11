@@ -13,6 +13,7 @@ from feaflow.project import Project
 
 class AirflowSchedulerConfig(SchedulerConfig):
     type: Literal["airflow"]
+    owner: str = "airflow"
     schedule_interval: Union[str, timedelta, relativedelta] = timedelta(days=1)
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -46,11 +47,15 @@ class AirflowScheduler(Scheduler):
         assert isinstance(airflow_config, AirflowSchedulerConfig)
 
         default_args = {
+            "owner": airflow_config.owner,
             "depends_on_past": airflow_config.depends_on_past,
             "retries": airflow_config.retries,
         }
         if airflow_config.retry_delay:
             default_args["retry_delay"] = airflow_config.retry_delay
+
+        def run_job(project: Project, _job: Job):
+            project.run_job(_job)
 
         with DAG(
             job.name,
@@ -61,7 +66,9 @@ class AirflowScheduler(Scheduler):
             catchup=airflow_config.catchup,
             dagrun_timeout=airflow_config.dagrun_timeout,
         ) as dag:
-
-            job = PythonOperator()
-
+            run_job = PythonOperator(
+                task_id="run_job",
+                python_callable=run_job,
+                op_kwargs={"project": self._project, "job": job},
+            )
             return dag
