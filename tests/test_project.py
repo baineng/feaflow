@@ -40,4 +40,4 @@ def test_scan_jobs(example_project):
     assert test_job1_config.sources[0].alias == "daily_events"
     assert type(test_job1_config.computes[0]) == SqlComputeConfig
     assert type(test_job1_config.sinks[0]) == TableSinkConfig
-    assert test_job1_config.sinks[0].name == "feaflow_table_sink_test"
+    assert test_job1_config.sinks[0].name == "test_sink_table"

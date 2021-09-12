@@ -19,4 +19,4 @@ def test_construct_job(example_project):
 
     assert len(test_job1.sinks) == 1
     assert isinstance(test_job1.sinks[0], TableSink)
-    assert test_job1.sinks[0].config.name == "feaflow_table_sink_test"
+    assert test_job1.sinks[0].config.name == "test_sink_table"

@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Type
+from typing import List, Optional, Type
 
 from pydantic import BaseModel, constr
+
+from feaflow.exceptions import EngineHandleError
+
+# === System Level Abstracts Start ===
 
 
 class FeaflowModel(BaseModel):
@@ -15,7 +19,7 @@ class FeaflowImmutableModel(FeaflowModel):
         allow_mutation = False
 
 
-class FeaflowComponent(ABC):
+class FeaflowConfigurableComponent(ABC):
     @classmethod
     @abstractmethod
     def create_config(cls, **data):
@@ -29,60 +33,35 @@ class FeaflowComponent(ABC):
         raise NotImplementedError
 
     def __init__(self, config):
+        """ :type config: `feaflow.abstracts.FeaflowConfig` """
         raise NotImplementedError
-
-
-class Scheduler(ABC):
-    pass
-
-
-class Engine(FeaflowComponent):
-    @abstractmethod
-    def new_session(self):
-        """ :rtype: `feaflow.abstracts.EngineSession` """
-        raise NotImplementedError
-
-
-class EngineSession(ABC):
-    @abstractmethod
-    def run(self, job):
-        """ :type job: `feaflow.job.Job` """
-        raise NotImplementedError
-
-    @abstractmethod
-    def __enter__(self):
-        """ :rtype: `feaflow.abstracts.EngineSession` """
-        raise NotImplementedError
-
-    @abstractmethod
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        raise NotImplementedError
-
-
-class Source(FeaflowComponent, ABC):
-    pass
-
-
-class Compute(FeaflowComponent, ABC):
-    pass
-
-
-class Sink(FeaflowComponent, ABC):
-    pass
 
 
 class FeaflowConfig(FeaflowImmutableModel, ABC):
-    impl_cls: Type[FeaflowComponent]
+    impl_cls: Type[FeaflowConfigurableComponent]
     type: str
 
 
-class EngineConfig(FeaflowConfig, ABC):
-    impl_cls: Type[Engine]
-    name: constr(regex=r"^[^_][\w]+$", strip_whitespace=True, strict=True)
+# === System Level Abstracts End ===
 
 
-class SchedulerConfig(FeaflowConfig, ABC):
-    impl_cls: Type[Scheduler]
+# === ComputeUnit Abstracts Start ===
+
+
+class ComputeUnit(FeaflowConfigurableComponent, ABC):
+    pass
+
+
+class Source(ComputeUnit, ABC):
+    pass
+
+
+class Compute(ComputeUnit, ABC):
+    pass
+
+
+class Sink(ComputeUnit, ABC):
+    pass
 
 
 class SourceConfig(FeaflowConfig, ABC):
@@ -95,3 +74,97 @@ class ComputeConfig(FeaflowConfig, ABC):
 
 class SinkConfig(FeaflowConfig, ABC):
     impl_cls: Type[Sink]
+
+
+# === ComputeUnit Abstracts End ===
+
+# === Scheduler Abstracts Start ===
+
+
+class Scheduler(ABC):
+    pass
+
+
+class SchedulerConfig(FeaflowConfig, ABC):
+    impl_cls: Type[Scheduler]
+
+
+# === Scheduler Abstracts End ===
+
+
+# === Engine Abstracts Start ===
+
+
+class Engine(FeaflowConfigurableComponent, ABC):
+    @abstractmethod
+    def new_session(self):
+        """ :rtype: `feaflow.abstracts.EngineSession` """
+        raise NotImplementedError
+
+
+class EngineRunContext(FeaflowModel, ABC):
+    pass
+
+
+class EngineHandler(ABC):
+    @classmethod
+    def can_handle(cls, unit: ComputeUnit) -> bool:
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def handle(cls, context: EngineRunContext, unit: ComputeUnit):
+        raise NotImplementedError
+
+
+class EngineSession(ABC):
+    _handlers: List[Type[EngineHandler]] = None
+
+    @abstractmethod
+    def run(self, job):
+        """ :type job: `feaflow.job.Job` """
+        raise NotImplementedError
+
+    def get_handlers(self) -> Optional[List[Type[EngineHandler]]]:
+        return self._handlers
+
+    def set_handlers(self, handlers: List[Type[EngineHandler]]):
+        self._handlers = handlers
+
+    def handle(self, context: EngineRunContext, job):
+        """
+        :type context: `EngineRunContext`
+        :type job: `feaflow.job.Job`
+        """
+        # Handle Sources, then Computes, then Sinks
+        for source in job.sources:
+            self._handle_one_unit(context, source)
+        for compute in job.computes:
+            self._handle_one_unit(context, compute)
+        for sink in job.sinks:
+            self._handle_one_unit(context, sink)
+
+    def _handle_one_unit(self, context: EngineRunContext, unit: ComputeUnit):
+        try:
+            for handler in self._handlers:
+                if handler.can_handle(unit):
+                    handler.handle(context, unit)
+        except Exception:
+            raise EngineHandleError(context, unit)
+
+    @abstractmethod
+    def __enter__(self):
+        """ :rtype: `feaflow.abstracts.EngineSession` """
+        raise NotImplementedError
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        raise NotImplementedError
+
+
+class EngineConfig(FeaflowConfig, ABC):
+    impl_cls: Type[Engine]
+    name: constr(regex=r"^[^_][\w]+$", strip_whitespace=True, strict=True)
+
+
+# === Engine Abstracts End ===

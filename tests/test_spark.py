@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 from pandas._testing import assert_frame_equal
 from pyspark.sql import SparkSession
 
@@ -31,6 +32,7 @@ def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
     return expected_result
 
 
+@pytest.mark.spark
 def test_run_job1(example_project, job1, tmpdir):
     engine = example_project.get_engine_by_name("default_spark")
     assert type(engine) == SparkEngine
@@ -45,7 +47,6 @@ def test_run_job1(example_project, job1, tmpdir):
         engine_session.run(job1)
 
         sink_df = spark_session.table("test_sink_table")
-        sink_df.show()
         real = sink_df.toPandas()
         assert_frame_equal(
             expected.sort_values(by=["title"]).reset_index(drop=True),

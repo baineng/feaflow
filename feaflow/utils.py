@@ -2,7 +2,12 @@ import importlib
 from typing import Any, Dict, List
 
 from feaflow import exceptions
-from feaflow.abstracts import FeaflowComponent, FeaflowConfig, Scheduler
+from feaflow.abstracts import (
+    ComputeUnit,
+    FeaflowConfig,
+    FeaflowConfigurableComponent,
+    Scheduler,
+)
 
 
 def get_class_from_name(class_name: str):
@@ -30,14 +35,16 @@ def create_config_from_dict(
         else type_or_class
     )
     the_class = get_class_from_name(the_class_name)
-    assert issubclass(the_class, FeaflowComponent) or issubclass(the_class, Scheduler)
+    assert issubclass(the_class, FeaflowConfigurableComponent) or issubclass(
+        the_class, Scheduler
+    )
     the_config = the_class.create_config(**config_dict)
     assert isinstance(the_config, FeaflowConfig)
     return the_config
 
 
-def create_instance_from_config(config: FeaflowConfig) -> FeaflowComponent:
-    return config.impl_cls(config)
+def create_instance_from_config(config: FeaflowConfig) -> ComputeUnit:
+    return config.impl_cls(config=config)
 
 
 def split_cols(cols: str) -> List[str]:

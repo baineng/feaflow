@@ -1,9 +1,17 @@
+import multiprocessing
 from pathlib import Path
+from sys import platform
 
 import pytest
 
-from feaflow.job import Job
 from feaflow.project import Project
+
+
+def pytest_configure():
+    if platform in ["darwin", "windows"]:
+        multiprocessing.set_start_method("spawn")
+    else:
+        multiprocessing.set_start_method("fork")
 
 
 @pytest.fixture

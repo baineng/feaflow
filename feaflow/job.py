@@ -87,11 +87,14 @@ class Job:
     @property
     def sources(self) -> List[Source]:
         if self._sources is None:
-            self._sources = (
-                [create_instance_from_config(c) for c in self._config.sources]
-                if self._config.sources
-                else []
-            )
+            if self._config.sources is None:
+                self._sources = []
+            else:
+                self._sources = (
+                    [create_instance_from_config(c) for c in self._config.sources]
+                    if self._config.sources
+                    else []
+                )
         return self._sources
 
     @property
@@ -107,11 +110,14 @@ class Job:
     @property
     def sinks(self) -> List[Sink]:
         if self._sinks is None:
-            self._sinks = (
-                [create_instance_from_config(c) for c in self._config.sinks]
-                if self._config.sinks
-                else []
-            )
+            if self._config.sinks is None:
+                self._sinks = None
+            else:
+                self._sinks = (
+                    [create_instance_from_config(c) for c in self._config.sinks]
+                    if self._config.sinks
+                    else []
+                )
         return self._sinks
 
     def __repr__(self):

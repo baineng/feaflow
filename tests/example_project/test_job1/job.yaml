@@ -29,6 +29,6 @@ computes:
 sinks:
   - type: table
     name: test_sink_table
-    mode: overwrite
+    mode: append
     cols: title, amount
     format: orc

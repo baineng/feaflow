@@ -17,6 +17,6 @@ class EngineInitError(Exception):
         super().__init__(f"Could not initialize engine '{engine_type}'")
 
 
-class EngineRunError(Exception):
-    def __init__(self, engine_type: str, msg: str):
-        super().__init__(f"Engine '{engine_type}' running failed with msg {msg}")
+class EngineHandleError(Exception):
+    def __init__(self, context, unit):
+        super().__init__(f"Engine handling '{unit}' failed with context '{context}'")
