@@ -7,9 +7,9 @@ from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
 from feaflow.abstracts import (
     ComputeUnit,
+    ComputeUnitHandler,
     Engine,
     EngineConfig,
-    EngineHandler,
     EngineRunContext,
     EngineSession,
 )
@@ -107,14 +107,16 @@ class SparkEngineRunContext(EngineRunContext):
     compute_results: Dict[str, DataFrame] = {}
 
 
-class QuerySourceHandler(EngineHandler):
+class QuerySourceHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
         return isinstance(unit, QuerySource)
 
     @classmethod
-    def handle(cls, context: SparkEngineRunContext, unit: ComputeUnit):
+    def handle(cls, context: EngineRunContext, unit: ComputeUnit):
+        assert isinstance(context, SparkEngineRunContext)
         assert isinstance(unit, QuerySource)
+
         spark = context.spark_session
         df = spark.sql(unit.sql)
         source_id = (
@@ -126,14 +128,16 @@ class QuerySourceHandler(EngineHandler):
         context.source_results[source_id] = df
 
 
-class SqlComputeHandler(EngineHandler):
+class SqlComputeHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
         return isinstance(unit, SqlCompute)
 
     @classmethod
-    def handle(cls, context: SparkEngineRunContext, unit: ComputeUnit):
+    def handle(cls, context: EngineRunContext, unit: ComputeUnit):
+        assert isinstance(context, SparkEngineRunContext)
         assert isinstance(unit, SqlCompute)
+
         spark = context.spark_session
         df = spark.sql(unit.sql)
         compute_id = f"compute_{unit.config.type}_{int(time.time_ns())}_{random.randint(1000, 9999)}"
@@ -141,14 +145,16 @@ class SqlComputeHandler(EngineHandler):
         context.compute_results[compute_id] = df
 
 
-class TableSinkHandler(EngineHandler):
+class TableSinkHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
         return isinstance(unit, TableSink)
 
     @classmethod
-    def handle(cls, context: SparkEngineRunContext, unit: ComputeUnit):
+    def handle(cls, context: EngineRunContext, unit: ComputeUnit):
+        assert isinstance(context, SparkEngineRunContext)
         assert isinstance(unit, TableSink)
+
         sink_config = unit.config
         assert len(context.compute_results) > 0
         df = None

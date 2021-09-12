@@ -106,7 +106,7 @@ class EngineRunContext(FeaflowModel, ABC):
     pass
 
 
-class EngineHandler(ABC):
+class ComputeUnitHandler(ABC):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
         raise NotImplementedError
@@ -118,17 +118,17 @@ class EngineHandler(ABC):
 
 
 class EngineSession(ABC):
-    _handlers: List[Type[EngineHandler]] = None
+    _handlers: List[Type[ComputeUnitHandler]] = None
 
     @abstractmethod
     def run(self, job):
         """ :type job: `feaflow.job.Job` """
         raise NotImplementedError
 
-    def get_handlers(self) -> Optional[List[Type[EngineHandler]]]:
+    def get_handlers(self) -> Optional[List[Type[ComputeUnitHandler]]]:
         return self._handlers
 
-    def set_handlers(self, handlers: List[Type[EngineHandler]]):
+    def set_handlers(self, handlers: List[Type[ComputeUnitHandler]]):
         self._handlers = handlers
 
     def handle(self, context: EngineRunContext, job):
