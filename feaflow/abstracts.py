@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel, constr
 
@@ -26,15 +26,19 @@ class FeaflowConfigurableComponent(ABC):
         """ :rtype: `feaflow.abstracts.FeaflowConfig` """
         raise NotImplementedError
 
-    @property
-    @abstractmethod
-    def config(self):
-        """ :rtype: `feaflow.abstracts.FeaflowConfig` """
-        raise NotImplementedError
-
     def __init__(self, config):
         """ :type config: `feaflow.abstracts.FeaflowConfig` """
-        raise NotImplementedError
+        self._config = config
+
+    @property
+    def config(self):
+        """ :rtype: `feaflow.abstracts.FeaflowConfig` """
+        return self._config
+
+    @property
+    def type(self):
+        """ :rtype: str """
+        return self._config.type
 
 
 class FeaflowConfig(FeaflowImmutableModel, ABC):
@@ -103,7 +107,8 @@ class Engine(FeaflowConfigurableComponent, ABC):
 
 
 class EngineRunContext(FeaflowModel, ABC):
-    pass
+    template_context: Dict[str, Any] = {}
+    engine: Engine
 
 
 class ComputeUnitHandler(ABC):

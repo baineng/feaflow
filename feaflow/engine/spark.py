@@ -1,5 +1,3 @@
-import random
-import time
 from typing import Any, Dict, Optional
 
 from pydantic.typing import Literal
@@ -18,7 +16,7 @@ from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
 from feaflow.sinks import TableSink
 from feaflow.sources import QuerySource
-from feaflow.utils import create_random_str, split_cols
+from feaflow.utils import create_random_str, split_cols, template_substitute
 
 
 class SparkEngineConfig(EngineConfig):
@@ -36,11 +34,7 @@ class SparkEngine(Engine):
 
     def __init__(self, config: SparkEngineConfig):
         assert isinstance(config, SparkEngineConfig)
-        self._config = config
-
-    @property
-    def config(self) -> SparkEngineConfig:
-        return self._config
+        super().__init__(config)
 
     def new_session(self):
         return SparkEngineSession(self)
@@ -73,7 +67,8 @@ class SparkEngineSession(EngineSession):
     def _create_spark_session(
         self, job_name: str, config_overlay: Optional[Dict[str, Any]] = None
     ) -> SparkSession:
-        engine_config = self._engine.config
+        engine_config: SparkEngineConfig = self._engine.config
+
         if config_overlay is not None:
             assert "type" not in config_overlay, "type is not changeable"
             engine_config = engine_config.copy(update=config_overlay)
@@ -107,6 +102,9 @@ class SparkEngineRunContext(EngineRunContext):
     compute_results: Dict[str, DataFrame] = {}
 
 
+# === Source Handlers ===
+
+
 class QuerySourceHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
@@ -118,14 +116,19 @@ class QuerySourceHandler(ComputeUnitHandler):
         assert isinstance(unit, QuerySource)
 
         spark = context.spark_session
-        df = spark.sql(unit.sql)
-        source_id = (
-            unit.alias
-            if unit.alias
-            else f"source_{unit.config.type}_{create_random_str()}"
+        template_context = context.template_context
+
+        df_id = (
+            unit.get_alias(template_context)
+            if unit.get_alias() is not None
+            else f"source_{unit.type}_{create_random_str()}"
         )
-        df.createOrReplaceTempView(source_id)
-        context.source_results[source_id] = df
+        df = spark.sql(unit.get_sql(template_context))
+        df.createOrReplaceTempView(df_id)
+        context.source_results[df_id] = df
+
+
+# === Compute Handlers ===
 
 
 class SqlComputeHandler(ComputeUnitHandler):
@@ -139,10 +142,23 @@ class SqlComputeHandler(ComputeUnitHandler):
         assert isinstance(unit, SqlCompute)
 
         spark = context.spark_session
-        df = spark.sql(unit.sql)
-        compute_id = f"compute_{unit.config.type}_{create_random_str()}"
-        df.createOrReplaceTempView(compute_id)
-        context.compute_results[compute_id] = df
+        template_context = context.template_context
+        template_context.update(
+            {
+                f"source_{index}": source_df_id
+                for index, source_df_id in zip(
+                    range(len(context.source_results)), context.source_results.keys()
+                )
+            }
+        )
+
+        df = spark.sql(unit.get_sql(template_context))
+        df_id = f"compute_{unit.type}_{create_random_str()}"
+        df.createOrReplaceTempView(df_id)
+        context.compute_results[df_id] = df
+
+
+# === Sink Handlers ===
 
 
 class TableSinkHandler(ComputeUnitHandler):
@@ -154,9 +170,9 @@ class TableSinkHandler(ComputeUnitHandler):
     def handle(cls, context: EngineRunContext, unit: ComputeUnit):
         assert isinstance(context, SparkEngineRunContext)
         assert isinstance(unit, TableSink)
-
-        sink_config = unit.config
         assert len(context.compute_results) > 0
+
+        template_context = context.template_context
         df = None
         for result_id, result_df in context.compute_results.items():
             if not df:
@@ -164,10 +180,12 @@ class TableSinkHandler(ComputeUnitHandler):
             else:
                 # TODO join by cols
                 df = df.join(result_df)
-        if sink_config.cols:
-            df.selectExpr(*split_cols(sink_config.cols))
+
+        if unit.get_cols() is not None:
+            cols = unit.get_cols(template_context)
+            df.selectExpr(*split_cols(cols))
 
         writer: DataFrameWriter = (
-            df.write.mode(sink_config.mode.value).format(sink_config.format.value)
+            df.write.mode(unit.config.mode.value).format(unit.config.format.value)
         )
-        writer.saveAsTable(sink_config.name)
+        writer.saveAsTable(unit.get_name(template_context))

@@ -1,9 +1,10 @@
 from enum import Enum
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic.typing import Literal
 
 from feaflow.abstracts import Sink, SinkConfig
+from feaflow.utils import template_substitute
 
 
 class TableSinkMode(str, Enum):
@@ -21,9 +22,9 @@ class TableSinkFormat(str, Enum):
 class TableSinkConfig(SinkConfig):
     type: Literal["table"]
     name: str
+    cols: Optional[str] = None
     mode: TableSinkMode = TableSinkMode.APPEND
     format: TableSinkFormat = TableSinkFormat.PARQUET
-    cols: Optional[str] = None
     partition_cols: Optional[str] = None
 
 
@@ -34,11 +35,19 @@ class TableSink(Sink):
 
     def __init__(self, config: TableSinkConfig):
         assert isinstance(config, TableSinkConfig)
-        self._config = config
+        super().__init__(config)
 
-    @property
-    def config(self):
-        return self._config
+    def get_name(self, template_context: Optional[Dict[str, Any]] = None) -> str:
+        return template_substitute(self._config.name, template_context)
+
+    def get_cols(
+        self, template_context: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        return (
+            template_substitute(self._config.cols, template_context)
+            if self._config.cols is not None
+            else None
+        )
 
 
 class RedisSinkConfig(SinkConfig):
@@ -55,20 +64,4 @@ class RedisSink(Sink):
 
     def __init__(self, config: RedisSinkConfig):
         assert isinstance(config, RedisSinkConfig)
-        self._config = config
-
-    @property
-    def config(self):
-        return self._config
-
-    @property
-    def host(self):
-        return self._config.host
-
-    @property
-    def port(self):
-        return self._config.port
-
-    @property
-    def db(self):
-        return self._config.db
+        super().__init__(config)

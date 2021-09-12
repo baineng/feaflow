@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic.typing import Literal
 
 from feaflow.abstracts import Source, SourceConfig
+from feaflow.utils import template_substitute
 
 
 class QuerySourceConfig(SourceConfig):
@@ -18,16 +19,16 @@ class QuerySource(Source):
 
     def __init__(self, config: QuerySourceConfig):
         assert isinstance(config, QuerySourceConfig)
-        self._config = config
+        super().__init__(config)
 
-    @property
-    def config(self):
-        return self._config
+    def get_alias(
+        self, template_context: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        return (
+            template_substitute(self._config.alias, template_context)
+            if self._config.alias is not None
+            else None
+        )
 
-    @property
-    def alias(self):
-        return self._config.alias
-
-    @property
-    def sql(self):
-        return self._config.sql
+    def get_sql(self, template_context: Optional[Dict[str, Any]] = None) -> str:
+        return template_substitute(self._config.sql, template_context)

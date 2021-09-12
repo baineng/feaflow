@@ -1,7 +1,9 @@
 import importlib
 import random
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+from jinja2 import Template
 
 from feaflow import exceptions
 from feaflow.abstracts import (
@@ -56,3 +58,11 @@ def split_cols(cols: str) -> List[str]:
 def create_random_str(short: bool = False) -> str:
     # TODO short
     return f"{int(time.time_ns())}_{random.randint(1000, 9999)}"
+
+
+def template_substitute(
+    template_source: Any, template_context: Optional[Dict[str, Any]] = None
+) -> str:
+    if template_context is None:
+        template_context = {}
+    return Template(template_source).render(template_context)

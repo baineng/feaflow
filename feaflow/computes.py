@@ -1,6 +1,9 @@
+from typing import Any, Dict, Optional
+
 from pydantic.typing import Literal
 
 from feaflow.abstracts import Compute, ComputeConfig
+from feaflow.utils import template_substitute
 
 
 class SqlComputeConfig(ComputeConfig):
@@ -15,12 +18,7 @@ class SqlCompute(Compute):
 
     def __init__(self, config: SqlComputeConfig):
         assert isinstance(config, SqlComputeConfig)
-        self._config = config
+        super().__init__(config)
 
-    @property
-    def config(self):
-        return self._config
-
-    @property
-    def sql(self):
-        return self._config.sql
+    def get_sql(self, template_context: Optional[Dict[str, Any]] = None):
+        return template_substitute(self._config.sql, template_context)
