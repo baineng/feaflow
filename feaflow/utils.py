@@ -1,4 +1,6 @@
 import importlib
+import random
+import time
 from typing import Any, Dict, List
 
 from feaflow import exceptions
@@ -49,3 +51,8 @@ def create_instance_from_config(config: FeaflowConfig) -> ComputeUnit:
 
 def split_cols(cols: str) -> List[str]:
     return list(map(str.strip, cols.split(",")))
+
+
+def create_random_str(short: bool = False) -> str:
+    # TODO short
+    return f"{int(time.time_ns())}_{random.randint(1000, 9999)}"

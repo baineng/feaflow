@@ -18,7 +18,7 @@ from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
 from feaflow.sinks import TableSink
 from feaflow.sources import QuerySource
-from feaflow.utils import split_cols
+from feaflow.utils import create_random_str, split_cols
 
 
 class SparkEngineConfig(EngineConfig):
@@ -122,7 +122,7 @@ class QuerySourceHandler(ComputeUnitHandler):
         source_id = (
             unit.alias
             if unit.alias
-            else f"source_{unit.config.type}_{int(time.time_ns())}_{random.randint(1000, 9999)}"
+            else f"source_{unit.config.type}_{create_random_str()}"
         )
         df.createOrReplaceTempView(source_id)
         context.source_results[source_id] = df
@@ -140,7 +140,7 @@ class SqlComputeHandler(ComputeUnitHandler):
 
         spark = context.spark_session
         df = spark.sql(unit.sql)
-        compute_id = f"compute_{unit.config.type}_{int(time.time_ns())}_{random.randint(1000, 9999)}"
+        compute_id = f"compute_{unit.config.type}_{create_random_str()}"
         df.createOrReplaceTempView(compute_id)
         context.compute_results[compute_id] = df
 

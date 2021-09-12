@@ -32,12 +32,12 @@ def test_scan_jobs(example_project):
     jobs = example_project.scan_jobs()
     assert len(jobs) == 1
 
-    test_job1: Job = next(filter(lambda j: j.name == "test_job1", jobs))
-    test_job1_config = test_job1.config
-    assert test_job1_config.scheduler.schedule_interval == "0 6 * * *"
-    assert test_job1_config.engine == "default_spark"
-    assert type(test_job1_config.sources[0]) == QuerySourceConfig
-    assert test_job1_config.sources[0].alias == "daily_events"
-    assert type(test_job1_config.computes[0]) == SqlComputeConfig
-    assert type(test_job1_config.sinks[0]) == TableSinkConfig
-    assert test_job1_config.sinks[0].name == "test_sink_table"
+    job1: Job = next(filter(lambda j: j.name == "test_job1", jobs))
+    job1_config = job1.config
+    assert job1_config.scheduler.schedule_interval == "0 6 * * *"
+    assert job1_config.engine == "default_spark"
+    assert type(job1_config.sources[0]) == QuerySourceConfig
+    assert job1_config.sources[0].alias == "daily_events"
+    assert type(job1_config.computes[0]) == SqlComputeConfig
+    assert type(job1_config.sinks[0]) == TableSinkConfig
+    assert job1_config.sinks[0].name == "test_sink_table"
