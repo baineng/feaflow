@@ -28,7 +28,7 @@ computes:
 
 sinks:
   - type: table
-    name: feaflow_table_sink_test
+    name: test_sink_table
     mode: overwrite
     cols: title, amount
     format: orc

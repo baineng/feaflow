@@ -1,55 +1,54 @@
-import random
-import time
-
 import numpy as np
 import pandas as pd
-import pytest
+from pandas._testing import assert_frame_equal
+from pyspark.sql import SparkSession
 
 from feaflow.engine.spark import SparkEngine, SparkEngineSession
-from feaflow.job import Job, JobConfig
 
 
-@pytest.mark.skip
-def test_run_job1(example_project):
-    engine = example_project.get_engine_by_name("default_spark")
-    assert type(engine) == SparkEngine
-
-    jobs = example_project.scan_jobs()
-    test_job1: Job = next(filter(lambda j: j.name == "test_job1", jobs))
-    test_job1_config = test_job1.config
-    temp_sink_table = f"feaflow_table_sink_test_test_{int(time.time_ns())}_{random.randint(1000, 9999)}"
-    patch_conf = test_job1_config.copy(
-        update={
-            "sinks": [test_job1_config.sinks[0].copy(update={"name": temp_sink_table})]
-        }
-    )
-    patch_job = Job(patch_conf)
-
-    original_data = pd.DataFrame(
+def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
+    events_dataset = pd.DataFrame(
         {
             "id": np.arange(1001, 1011),
-            "title": np.random.choice(
-                ["message.send", "user.login", "user.signup", "user.logout"], 10
+            "title": (
+                ["message.send"] * 2
+                + ["user.login"] * 3
+                + ["user.signup"] * 1
+                + ["user.logout"] * 4
             ),
             "published": pd.date_range("2021-09-10", periods=10),
         }
     )
+    events_df = spark.createDataFrame(events_dataset)
+    events_df.createOrReplaceTempView("events")
 
-    with engine.new_session() as session:
-        assert isinstance(session, SparkEngineSession)
-        spark_session = session.get_or_create_spark_session("test_job1")
-        origin_df = spark_session.createDataFrame(original_data)
-        origin_df.createOrReplaceTempView("events")
-        # session.run(test_job1)
-        origin_df.printSchema()
-        origin_df.show()
+    expected_result = pd.DataFrame(
+        {
+            "title": ["message.send", "user.login", "user.signup", "user.logout"],
+            "amount": [2, 3, 1, 4],
+        }
+    )
+    return expected_result
 
-        session.run(patch_job)
 
-        sink_df = spark_session.table(temp_sink_table)
-        sink_df.printSchema()
+def test_run_job1(example_project, job1, tmpdir):
+    engine = example_project.get_engine_by_name("default_spark")
+    assert type(engine) == SparkEngine
+
+    with engine.new_session() as engine_session:
+        assert isinstance(engine_session, SparkEngineSession)
+        spark_session = engine_session.get_or_create_spark_session(
+            "test_job1",
+            config_overlay={"config": {"spark.sql.warehouse.dir": f"file://{tmpdir}"}},
+        )
+        expected = prepare_dataset(spark_session)
+        engine_session.run(job1)
+
+        sink_df = spark_session.table("test_sink_table")
         sink_df.show()
-
-        spark_session.sql(f"desc formatted {temp_sink_table}").show(100, False)
-
-        time.sleep(3)
+        real = sink_df.toPandas()
+        assert_frame_equal(
+            expected.sort_values(by=["title"]).reset_index(drop=True),
+            real.sort_values(by=["title"]).reset_index(drop=True),
+            check_dtype=False,
+        )

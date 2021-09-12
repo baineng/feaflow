@@ -77,8 +77,8 @@ class Project:
 
     def run_job(self, job: Job):
         engine = self.get_engine_by_name(job.engine_name)
-        with engine.new_session() as session:
-            session.run(job)
+        with engine.new_session() as engine_session:
+            engine_session.run(job)
 
 
 def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:

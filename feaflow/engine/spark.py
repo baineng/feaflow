@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from pydantic.typing import Literal
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
@@ -42,9 +42,11 @@ class SparkEngineSession(EngineSession):
         self._engine = engine
         self._spark_session: Optional[SparkSession] = None
 
-    def get_or_create_spark_session(self, job_name: str) -> SparkSession:
+    def get_or_create_spark_session(
+        self, job_name: str, config_overlay: Optional[Dict[str, Any]] = None
+    ) -> SparkSession:
         if self._spark_session is None:
-            self._spark_session = self._create_spark_session(job_name)
+            self._spark_session = self._create_spark_session(job_name, config_overlay)
         return self._spark_session
 
     def run(self, job: Job):
@@ -80,17 +82,23 @@ class SparkEngineSession(EngineSession):
                 )
                 table_sink_writer.saveAsTable(table_sink_config.name)
 
-    def _create_spark_session(self, job_name: str) -> SparkSession:
+    def _create_spark_session(
+        self, job_name: str, config_overlay: Optional[Dict[str, Any]] = None
+    ) -> SparkSession:
         engine_config = self._engine.config
+        if config_overlay is not None:
+            assert "type" not in config_overlay, "type is not changeable"
+            engine_config = engine_config.copy(update=config_overlay)
+
         try:
             builder = SparkSession.builder.master(engine_config.master).appName(
                 f"{engine_config.job_name_prefix}_{job_name}"
             )
-            if engine_config.enable_hive_support:
-                builder = builder.enableHiveSupport()
             if engine_config.config is not None:
                 for k, v in engine_config.config.items():
                     builder = builder.config(k, v)
+            if engine_config.enable_hive_support:
+                builder = builder.enableHiveSupport()
             return builder.getOrCreate()
         except Exception:
             raise EngineInitError(engine_config.type)
