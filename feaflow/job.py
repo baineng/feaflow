@@ -14,14 +14,13 @@ from feaflow.abstracts import (
     Source,
     SourceConfig,
 )
-from feaflow.constants import (
-    BUILTIN_COMPUTES,
-    BUILTIN_SCHEDULERS,
-    BUILTIN_SINKS,
-    BUILTIN_SOURCES,
-)
+from feaflow.constants import BUILTIN_COMPUTES, BUILTIN_SINKS, BUILTIN_SOURCES
 from feaflow.exceptions import ConfigLoadError
-from feaflow.utils import create_config_from_dict, create_instance_from_config
+from feaflow.utils import (
+    create_config_from_dict,
+    create_instance_from_config,
+    create_scheduler_config_from_dict,
+)
 
 
 class JobConfig(FeaflowModel):
@@ -35,11 +34,7 @@ class JobConfig(FeaflowModel):
     def __init__(self, **data: Any):
         if "scheduler" in data:
             assert type(data["scheduler"]) == dict
-            if "type" not in data["scheduler"]:
-                data["scheduler"]["type"] = "airflow"
-            data["scheduler"] = create_config_from_dict(
-                data["scheduler"], BUILTIN_SCHEDULERS
-            )
+            data["scheduler"] = create_scheduler_config_from_dict(data["scheduler"])
 
         if "sources" in data:
             assert type(data["sources"]) == list

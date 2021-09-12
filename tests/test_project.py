@@ -37,7 +37,7 @@ def test_scan_jobs(example_project):
     assert job1_config.scheduler.schedule_interval == "0 6 * * *"
     assert job1_config.engine == "default_spark"
     assert type(job1_config.sources[0]) == QuerySourceConfig
-    assert job1_config.sources[0].alias == "daily_events"
+    assert job1_config.sources[0].alias is None
     assert type(job1_config.computes[0]) == SqlComputeConfig
     assert type(job1_config.sinks[0]) == TableSinkConfig
     assert job1_config.sinks[0].name == "test_sink_table"

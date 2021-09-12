@@ -10,7 +10,7 @@ from feaflow.abstracts import (
     ComputeUnit,
     FeaflowConfig,
     FeaflowConfigurableComponent,
-    Scheduler,
+    SchedulerConfig,
 )
 
 
@@ -39,12 +39,24 @@ def create_config_from_dict(
         else type_or_class
     )
     the_class = get_class_from_name(the_class_name)
-    assert issubclass(the_class, FeaflowConfigurableComponent) or issubclass(
-        the_class, Scheduler
-    )
+    assert issubclass(the_class, FeaflowConfigurableComponent)
     the_config = the_class.create_config(**config_dict)
     assert isinstance(the_config, FeaflowConfig)
     return the_config
+
+
+def create_scheduler_config_from_dict(config_dict: Dict[str, Any]) -> SchedulerConfig:
+    if (
+        "type" not in config_dict
+        or str(config_dict["type"]).strip().lower() == "airflow"
+    ):
+        from feaflow.airflow import AirflowSchedulerConfig
+
+        config_class = AirflowSchedulerConfig
+    else:
+        raise NotImplementedError
+
+    return config_class(**config_dict)
 
 
 def create_instance_from_config(config: FeaflowConfig) -> ComputeUnit:

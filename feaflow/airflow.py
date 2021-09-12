@@ -4,15 +4,13 @@ from typing import List, Optional, Union
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from dateutil.relativedelta import relativedelta
-from pydantic.typing import Literal
 
-from feaflow.abstracts import Scheduler, SchedulerConfig
+from feaflow.abstracts import SchedulerConfig
 from feaflow.job import Job
 from feaflow.project import Project
 
 
 class AirflowSchedulerConfig(SchedulerConfig):
-    type: Literal["airflow"]
     owner: str = "airflow"
     schedule_interval: Union[str, timedelta, relativedelta] = timedelta(days=1)
     start_date: Optional[datetime] = None
@@ -24,51 +22,44 @@ class AirflowSchedulerConfig(SchedulerConfig):
     retry_delay: Optional[timedelta] = None
 
 
-class AirflowScheduler(Scheduler):
-    @classmethod
-    def create_config(cls, **data):
-        return AirflowSchedulerConfig(impl_cls=cls, **data)
+def create_dags_from_project(project: Project) -> List[DAG]:
+    jobs = project.scan_jobs()
+    dags = []
+    for job in jobs:
+        if not isinstance(job.scheduler_config, AirflowSchedulerConfig):
+            # TODO log the case that jobs rely on other scheduler
+            continue
+        dags.append(create_dag_from_job(project, job))
+    return dags
 
-    def __init__(self, project: Project):
-        self._project = project
 
-    def create_project_dags(self) -> List[DAG]:
-        jobs = self._project.scan_jobs()
-        dags = []
-        for job in jobs:
-            if not isinstance(job.scheduler_config, AirflowSchedulerConfig):
-                # TODO log the case that jobs rely on other scheduler
-                continue
-            dags.append(self.create_dag_by_job(job))
-        return dags
+def create_dag_from_job(project: Project, job: Job) -> DAG:
+    airflow_config = job.scheduler_config
+    assert isinstance(airflow_config, AirflowSchedulerConfig)
 
-    def create_dag_by_job(self, job: Job) -> DAG:
-        airflow_config = job.scheduler_config
-        assert isinstance(airflow_config, AirflowSchedulerConfig)
+    default_args = {
+        "owner": airflow_config.owner,
+        "depends_on_past": airflow_config.depends_on_past,
+        "retries": airflow_config.retries,
+    }
+    if airflow_config.retry_delay:
+        default_args["retry_delay"] = airflow_config.retry_delay
 
-        default_args = {
-            "owner": airflow_config.owner,
-            "depends_on_past": airflow_config.depends_on_past,
-            "retries": airflow_config.retries,
-        }
-        if airflow_config.retry_delay:
-            default_args["retry_delay"] = airflow_config.retry_delay
+    def run_job(_project: Project, _job: Job):
+        _project.run_job(_job)
 
-        def run_job(project: Project, _job: Job):
-            project.run_job(_job)
-
-        with DAG(
-            job.name,
-            default_args=default_args,
-            schedule_interval=airflow_config.schedule_interval,
-            start_date=airflow_config.start_date,
-            end_date=airflow_config.end_date,
-            catchup=airflow_config.catchup,
-            dagrun_timeout=airflow_config.dagrun_timeout,
-        ) as dag:
-            run_job = PythonOperator(
-                task_id="run_job",
-                python_callable=run_job,
-                op_kwargs={"project": self._project, "job": job},
-            )
-            return dag
+    with DAG(
+        job.name,
+        default_args=default_args,
+        schedule_interval=airflow_config.schedule_interval,
+        start_date=airflow_config.start_date,
+        end_date=airflow_config.end_date,
+        catchup=airflow_config.catchup,
+        dagrun_timeout=airflow_config.dagrun_timeout,
+    ) as dag:
+        run_job = PythonOperator(
+            task_id="run_job",
+            python_callable=run_job,
+            op_kwargs={"project": project, "job": job},
+        )
+        return dag

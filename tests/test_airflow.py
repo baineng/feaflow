@@ -5,13 +5,12 @@ from airflow import DAG
 from airflow.models import DagBag, TaskInstance
 from pytz import utc
 
-from feaflow.airflow import AirflowScheduler
+from feaflow import airflow
 
 
 @pytest.fixture
 def job1_dag(example_project):
-    airflow_scheduler = AirflowScheduler(example_project)
-    dags = airflow_scheduler.create_project_dags()
+    dags = airflow.create_dags_from_project(example_project)
     assert len(dags) == 1
     job1_dag: DAG = next(filter(lambda d: d.dag_id == "test_job1", dags))
     return job1_dag

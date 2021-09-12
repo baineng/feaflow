@@ -85,12 +85,8 @@ class SinkConfig(FeaflowConfig, ABC):
 # === Scheduler Abstracts Start ===
 
 
-class Scheduler(ABC):
+class SchedulerConfig(FeaflowImmutableModel, ABC):
     pass
-
-
-class SchedulerConfig(FeaflowConfig, ABC):
-    impl_cls: Type[Scheduler]
 
 
 # === Scheduler Abstracts End ===

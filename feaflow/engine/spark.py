@@ -16,7 +16,7 @@ from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
 from feaflow.sinks import TableSink
 from feaflow.sources import QuerySource
-from feaflow.utils import create_random_str, split_cols, template_substitute
+from feaflow.utils import create_random_str, split_cols
 
 
 class SparkEngineConfig(EngineConfig):

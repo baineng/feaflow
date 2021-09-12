@@ -22,6 +22,7 @@ sources:
     sql: >-
       SELECT id, published
       FROM events
+    alias: events_published
 
 computes:
   - type: sql
