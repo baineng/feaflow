@@ -30,7 +30,7 @@ def test_invalid_project(tmpdir):
 
 def test_scan_jobs(example_project):
     jobs = example_project.scan_jobs()
-    assert len(jobs) == 1
+    assert len(jobs) == 2
 
     job1: Job = next(filter(lambda j: j.name == "test_job1", jobs))
     job1_config = job1.config

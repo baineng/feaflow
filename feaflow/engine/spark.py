@@ -15,7 +15,7 @@ from feaflow.computes import SqlCompute
 from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
 from feaflow.sinks import TableSink
-from feaflow.sources import QuerySource
+from feaflow.sources import PandasDataFrameSource, QuerySource
 from feaflow.utils import create_random_str, split_cols
 
 
@@ -44,7 +44,14 @@ class SparkEngineSession(EngineSession):
     def __init__(self, engine: SparkEngine):
         self._engine = engine
         self._spark_session: Optional[SparkSession] = None
-        self.set_handlers([QuerySourceHandler, SqlComputeHandler, TableSinkHandler])
+        self.set_handlers(
+            [
+                QuerySourceHandler,
+                PandasDataFrameSourceHandler,
+                SqlComputeHandler,
+                TableSinkHandler,
+            ]
+        )
 
     def run(self, job: Job):
         engine_config = self._engine.config
@@ -124,6 +131,23 @@ class QuerySourceHandler(ComputeUnitHandler):
             else f"source_{unit.type}_{create_random_str()}"
         )
         df = spark.sql(unit.get_sql(template_context))
+        df.createOrReplaceTempView(df_id)
+        context.source_results[df_id] = df
+
+
+class PandasDataFrameSourceHandler(ComputeUnitHandler):
+    @classmethod
+    def can_handle(cls, unit: ComputeUnit) -> bool:
+        return isinstance(unit, PandasDataFrameSource)
+
+    @classmethod
+    def handle(cls, context: EngineRunContext, unit: ComputeUnit):
+        assert isinstance(context, SparkEngineRunContext)
+        assert isinstance(unit, PandasDataFrameSource)
+
+        spark = context.spark_session
+        df_id = f"source_{unit.type}_{create_random_str()}"
+        df = spark.createDataFrame(unit.get_dataframe())
         df.createOrReplaceTempView(df_id)
         context.source_results[df_id] = df
 

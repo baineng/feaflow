@@ -4,7 +4,7 @@ import pytest
 from pandas._testing import assert_frame_equal
 from pyspark.sql import SparkSession
 
-from feaflow.engine.spark import SparkEngine, SparkEngineSession
+from feaflow.engine.spark import SparkEngine, SparkEngineRunContext, SparkEngineSession
 
 
 def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
@@ -33,23 +33,27 @@ def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
 
 
 @pytest.mark.spark
-def test_run_job1(example_project, job1, tmpdir):
-    engine = example_project.get_engine_by_name("default_spark")
-    assert type(engine) == SparkEngine
+def test_run_job1(spark_run_context, job1):
+    expected = prepare_dataset(spark_run_context.spark_session)
+    spark_run_context.engine_session.run(job1)
 
-    with engine.new_session() as engine_session:
-        assert isinstance(engine_session, SparkEngineSession)
-        spark_session = engine_session.get_or_create_spark_session(
-            "test_job1",
-            config_overlay={"config": {"spark.sql.warehouse.dir": f"file://{tmpdir}"}},
-        )
-        expected = prepare_dataset(spark_session)
-        engine_session.run(job1)
+    sink_df = spark_run_context.spark_session.table("test_sink_table")
+    real = sink_df.toPandas()
+    assert_frame_equal(
+        expected.sort_values(by=["title"]).reset_index(drop=True),
+        real.sort_values(by=["title"]).reset_index(drop=True),
+        check_dtype=False,
+    )
 
-        sink_df = spark_session.table("test_sink_table")
-        real = sink_df.toPandas()
-        assert_frame_equal(
-            expected.sort_values(by=["title"]).reset_index(drop=True),
-            real.sort_values(by=["title"]).reset_index(drop=True),
-            check_dtype=False,
-        )
+
+@pytest.mark.spark
+def test_run_job2(spark_run_context, job2, job2_expect_result):
+    spark_run_context.engine_session.run(job2)
+
+    sink_df = spark_run_context.spark_session.table("test_sink_table")
+    real = sink_df.toPandas()
+    assert_frame_equal(
+        job2_expect_result.sort_values(by=["title"]).reset_index(drop=True),
+        real.sort_values(by=["title"]).reset_index(drop=True),
+        check_dtype=False,
+    )

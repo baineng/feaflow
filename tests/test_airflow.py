@@ -7,12 +7,23 @@ from pytz import utc
 
 from feaflow import airflow
 
+DEFAULT_DATE = datetime(2016, 1, 1, tzinfo=utc)
+
+# Refs:
+# https://medium.com/@chandukavar/testing-in-airflow-part-1-dag-validation-tests-dag-definition-tests-and-unit-tests-2aa94970570c
+
 
 @pytest.fixture
-def job1_dag(example_project):
+def job1_dag(example_project) -> DAG:
     dags = airflow.create_dags_from_project(example_project)
-    assert len(dags) == 1
     job1_dag: DAG = next(filter(lambda d: d.dag_id == "test_job1", dags))
+    return job1_dag
+
+
+@pytest.fixture
+def job2_dag(example_project) -> DAG:
+    dags = airflow.create_dags_from_project(example_project)
+    job1_dag: DAG = next(filter(lambda d: d.dag_id == "test_job2", dags))
     return job1_dag
 
 
@@ -35,14 +46,14 @@ def test_dag_import(example_project):
 
 def test_dag_from_dag_bag(example_project):
     dag_bag = DagBag(dag_folder=example_project.root_path, include_examples=False)
-    assert len(dag_bag.dags) == 1
+    assert len(dag_bag.dags) == 2
     job1_dag: DAG = dag_bag.dags["test_job1"]
     test_create_dag(job1_dag)
 
 
-@pytest.mark.skip
-def test_run_dag(job1_dag):
-    run_job_task = job1_dag.tasks[0]
-    ti = TaskInstance(task=run_job_task, execution_date=datetime.now())
-    result = run_job_task.execute(ti.get_template_context())
-    assert result is True
+@pytest.mark.airflow
+def test_run_dag(job2_dag):
+    task = job2_dag.get_task("run_job")
+    ti = TaskInstance(task=task, execution_date=datetime.now())
+    result = task.execute(ti.get_template_context())
+    assert result is None

@@ -146,12 +146,18 @@ class EngineSession(ABC):
             self._handle_one_unit(context, sink)
 
     def _handle_one_unit(self, context: EngineRunContext, unit: ComputeUnit):
+        _handled = False
+
         try:
             for handler in self._handlers:
-                if handler.can_handle(unit):
+                if not _handled and handler.can_handle(unit):
                     handler.handle(context, unit)
-        except Exception:
-            raise EngineHandleError(context, unit)
+                    _handled = True
+        except Exception as ex:
+            raise EngineHandleError(str(ex), context, type(unit).__name__)
+
+        if not _handled:
+            raise EngineHandleError(f"Not handler found", context, type(unit).__name__)
 
     @abstractmethod
     def __enter__(self):

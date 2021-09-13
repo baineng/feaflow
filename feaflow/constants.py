@@ -1,6 +1,9 @@
 BUILTIN_ENGINES = {"spark": "feaflow.engine.spark.SparkEngine"}
 
-BUILTIN_SOURCES = {"query": "feaflow.sources.QuerySource"}
+BUILTIN_SOURCES = {
+    "query": "feaflow.sources.QuerySource",
+    "pandas": "feaflow.sources.PandasDataFrameSource",
+}
 
 BUILTIN_COMPUTES = {"sql": "feaflow.computes.SqlCompute"}
 

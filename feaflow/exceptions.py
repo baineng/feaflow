@@ -18,5 +18,7 @@ class EngineInitError(Exception):
 
 
 class EngineHandleError(Exception):
-    def __init__(self, context, unit):
-        super().__init__(f"Engine handling '{unit}' failed with context '{context}'")
+    def __init__(self, reason, context, unit):
+        super().__init__(
+            f"Engine handles unit '{unit}' failed, because of: '{reason}', with context: '{context}'"
+        )

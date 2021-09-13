@@ -1,0 +1,38 @@
+name: test_job2
+engine: default_spark
+
+scheduler:
+  schedule_interval: '0 6 * * *'
+  start_date: 2021-09-10 00:00
+
+sources:
+  - type: pandas
+    dict:
+      id: [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010]
+      title: ["message.send", "user.login", "user.signup", "user.logout", "message.send", "user.login", "user.signup", "user.logout", "user.signup", "user.logout"]
+      published: ["2021-09-10", "2021-09-11", "2021-09-12", "2021-09-13", "2021-09-14", "2021-09-15", "2021-09-16", "2021-09-17", "2021-09-18", "2021-09-19"]
+
+  - type: pandas
+    file:
+      type: csv
+      path: data/pandas_df1.csv
+      args:
+        index_col: 0
+
+computes:
+  - type: sql
+    sql: >-
+      SELECT title, count(*) as amount
+      FROM (
+        SELECT * FROM {{ source_0 }}
+        UNION ALL
+        SELECT * FROM {{ source_1 }}
+      ) t
+      GROUP BY title
+
+sinks:
+  - type: table
+    name: test_sink_table
+    mode: append
+    cols: title, amount
+    format: orc

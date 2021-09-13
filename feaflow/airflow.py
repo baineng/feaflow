@@ -12,8 +12,8 @@ from feaflow.project import Project
 
 class AirflowSchedulerConfig(SchedulerConfig):
     owner: str = "airflow"
+    start_date: datetime
     schedule_interval: Union[str, timedelta, relativedelta] = timedelta(days=1)
-    start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     catchup: bool = False
     dagrun_timeout: Optional[timedelta] = None
@@ -45,9 +45,6 @@ def create_dag_from_job(project: Project, job: Job) -> DAG:
     if airflow_config.retry_delay:
         default_args["retry_delay"] = airflow_config.retry_delay
 
-    def run_job(_project: Project, _job: Job):
-        _project.run_job(_job)
-
     with DAG(
         job.name,
         default_args=default_args,
@@ -57,9 +54,14 @@ def create_dag_from_job(project: Project, job: Job) -> DAG:
         catchup=airflow_config.catchup,
         dagrun_timeout=airflow_config.dagrun_timeout,
     ) as dag:
-        run_job = PythonOperator(
+
+        _ = PythonOperator(
             task_id="run_job",
-            python_callable=run_job,
+            python_callable=_run_job,
             op_kwargs={"project": project, "job": job},
         )
         return dag
+
+
+def _run_job(project: Project, job: Job):
+    project.run_job(job)
