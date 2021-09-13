@@ -23,7 +23,7 @@ class SparkEngineConfig(EngineConfig):
     type: Literal["spark"]
     master: str = "local"
     enable_hive_support: bool = False
-    config: Optional[Dict[str, str]] = None
+    config: Dict[str, str] = {}
     job_name_prefix: Optional[str] = None
 
 
@@ -53,18 +53,22 @@ class SparkEngineSession(EngineSession):
             ]
         )
 
+    @property
+    def engine(self) -> SparkEngine:
+        return self._engine
+
     def run(self, job: Job):
         engine_config = self._engine.config
         assert (
             job.engine_name == engine_config.name
         ), f"The job '{job}' is not able to be run on engine '{engine_config.name}'."
-        spark_session = self.get_or_create_spark_session(job.name)
+        spark_session = self._get_or_create_spark_session(job.name)
         context = SparkEngineRunContext(
             engine=self._engine, engine_session=self, spark_session=spark_session
         )
         self.handle(context, job)
 
-    def get_or_create_spark_session(
+    def _get_or_create_spark_session(
         self, job_name: str, config_overlay: Optional[Dict[str, Any]] = None
     ) -> SparkSession:
         if self._spark_session is None:
@@ -84,9 +88,8 @@ class SparkEngineSession(EngineSession):
             builder = SparkSession.builder.master(engine_config.master).appName(
                 f"{engine_config.job_name_prefix}_{job_name}"
             )
-            if engine_config.config is not None:
-                for k, v in engine_config.config.items():
-                    builder = builder.config(k, v)
+            for k, v in engine_config.config.items():
+                builder = builder.config(k, v)
             if engine_config.enable_hive_support:
                 builder = builder.enableHiveSupport()
             return builder.getOrCreate()

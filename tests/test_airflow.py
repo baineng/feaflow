@@ -1,4 +1,7 @@
+import os
+import shutil
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 from airflow import DAG
@@ -52,7 +55,7 @@ def test_dag_from_dag_bag(example_project):
 
 
 @pytest.mark.airflow
-def test_run_dag(job2_dag):
+def test_run_dag(job2_dag, capsys):
     task = job2_dag.get_task("run_job")
     ti = TaskInstance(task=task, execution_date=datetime.now())
     result = task.execute(ti.get_template_context())

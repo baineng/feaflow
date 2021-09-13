@@ -7,6 +7,7 @@ import pytest
 
 from feaflow.engine.spark import SparkEngine, SparkEngineRunContext, SparkEngineSession
 from feaflow.project import Project
+from feaflow.utils import create_random_str
 
 
 def pytest_configure():
@@ -22,8 +23,26 @@ def example_project_path():
 
 
 @pytest.fixture
-def example_project(example_project_path):
-    return Project(example_project_path)
+def example_project(example_project_path, tmpdir):
+    project = Project(example_project_path)
+    project.get_engine_by_name("default_spark").config.config.update(
+        {"spark.sql.warehouse.dir": f"file://{tmpdir}"}
+    )
+    return project
+
+
+@pytest.fixture()
+def spark_run_context(example_project, tmpdir) -> SparkEngineRunContext:
+    engine = example_project.get_engine_by_name("default_spark")
+    assert type(engine) == SparkEngine
+    with engine.new_session() as engine_session:
+        assert isinstance(engine_session, SparkEngineSession)
+        spark_session = engine_session._get_or_create_spark_session(
+            f"test_spark_job_{create_random_str()}"
+        )
+        yield SparkEngineRunContext(
+            engine=engine, engine_session=engine_session, spark_session=spark_session
+        )
 
 
 @pytest.fixture
@@ -57,18 +76,3 @@ def job2_expect_result():
             "amount": [2, 2, 3, 3, 2, 1, 2, 2, 1, 2],
         }
     )
-
-
-@pytest.fixture()
-def spark_run_context(example_project, tmpdir) -> SparkEngineRunContext:
-    engine = example_project.get_engine_by_name("default_spark")
-    assert type(engine) == SparkEngine
-    with engine.new_session() as engine_session:
-        assert isinstance(engine_session, SparkEngineSession)
-        spark_session = engine_session.get_or_create_spark_session(
-            "test_job1",
-            config_overlay={"config": {"spark.sql.warehouse.dir": f"file://{tmpdir}"}},
-        )
-        yield SparkEngineRunContext(
-            engine=engine, engine_session=engine_session, spark_session=spark_session
-        )

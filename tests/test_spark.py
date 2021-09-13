@@ -4,8 +4,6 @@ import pytest
 from pandas._testing import assert_frame_equal
 from pyspark.sql import SparkSession
 
-from feaflow.engine.spark import SparkEngine, SparkEngineRunContext, SparkEngineSession
-
 
 def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
     events_dataset = pd.DataFrame(
