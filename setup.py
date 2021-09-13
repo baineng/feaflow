@@ -7,8 +7,6 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 INSTALL_REQUIRES = ["pydantic>=1.0.0", "PyYAML>=5.4.*", "Jinja2>=2.0.0"]
 
-CLI_REQUIRES = []
-
 AIRFLOW_REQUIRES = ["apache-airflow>=2.0.0"]
 
 SPARK_REQUIRES = ["pyspark>=2.4.3"]
@@ -25,7 +23,6 @@ DEV_REQUIRES = list(
             "assertpy==1.1",
             "pandas>=1.0.0",
         ]
-        + CLI_REQUIRES
         + AIRFLOW_REQUIRES
         + SPARK_REQUIRES
     )
@@ -47,8 +44,8 @@ setup(
     install_requires=INSTALL_REQUIRES,
     extras_require={
         "dev": DEV_REQUIRES,
-        "cli": CLI_REQUIRES,
         "airflow": AIRFLOW_REQUIRES,
+        "spark": SPARK_REQUIRES,
     },
     keywords=("feature featurestore feature_ingestion"),
     classifiers=[
