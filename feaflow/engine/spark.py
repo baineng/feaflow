@@ -3,15 +3,15 @@ from typing import Any, Dict, Optional
 from pydantic.typing import Literal
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
-from feaflow.abstracts import (
-    ComputeUnit,
+from feaflow.abstracts import ComputeUnit
+from feaflow.computes import SqlCompute
+from feaflow.engine import (
     ComputeUnitHandler,
     Engine,
     EngineConfig,
     EngineRunContext,
     EngineSession,
 )
-from feaflow.computes import SqlCompute
 from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
 from feaflow.sinks import TableSink

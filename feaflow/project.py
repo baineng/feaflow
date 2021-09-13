@@ -4,8 +4,9 @@ from typing import Any, List, Optional, Union
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
 
-from feaflow.abstracts import Engine, EngineConfig, FeaflowModel
+from feaflow.abstracts import FeaflowModel
 from feaflow.constants import BUILTIN_ENGINES
+from feaflow.engine import Engine, EngineConfig
 from feaflow.exceptions import ConfigLoadError
 from feaflow.job import Job, parse_job_config_file
 from feaflow.utils import create_config_from_dict, create_instance_from_config
