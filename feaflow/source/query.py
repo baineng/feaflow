@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 from typing_extensions import Literal
 
 from feaflow.abstracts import Source, SourceConfig
-from feaflow.utils import template_substitute
+from feaflow.utils import render_template
 
 
 class QuerySourceConfig(SourceConfig):
@@ -25,10 +25,10 @@ class QuerySource(Source):
         self, template_context: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         return (
-            template_substitute(self._config.alias, template_context)
+            render_template(self._config.alias, template_context)
             if self._config.alias is not None
             else None
         )
 
     def get_sql(self, template_context: Optional[Dict[str, Any]] = None) -> str:
-        return template_substitute(self._config.sql, template_context)
+        return render_template(self._config.sql, template_context)

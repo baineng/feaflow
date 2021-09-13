@@ -3,8 +3,6 @@ import random
 import time
 from typing import Any, Dict, List, Optional
 
-from jinja2 import Template
-
 from feaflow import exceptions
 from feaflow.abstracts import (
     ComputeUnit,
@@ -72,9 +70,11 @@ def create_random_str(short: bool = False) -> str:
     return f"{int(time.time_ns())}_{random.randint(1000, 9999)}"
 
 
-def template_substitute(
+def render_template(
     template_source: Any, template_context: Optional[Dict[str, Any]] = None
 ) -> str:
+    from jinja2 import Template
+
     if template_context is None:
         template_context = {}
     return Template(template_source).render(template_context)

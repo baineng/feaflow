@@ -1,7 +1,7 @@
 import pytest
 
 from feaflow.source.query import QuerySource, QuerySourceConfig
-from feaflow.utils import template_substitute
+from feaflow.utils import render_template
 
 
 @pytest.mark.skip
@@ -20,7 +20,7 @@ def test_template_substitute():
     context = {"name": "test"}
 
     template = "name is {{ name }}"
-    assert template_substitute(template, context) == "name is test"
+    assert render_template(template, context) == "name is test"
 
     template = """{% if name == "test" %}1{% else %}2{% endif %}"""
-    assert template_substitute(template, context) == "1"
+    assert render_template(template, context) == "1"

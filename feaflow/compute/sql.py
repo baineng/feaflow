@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 from typing_extensions import Literal
 
 from feaflow.abstracts import Compute, ComputeConfig
-from feaflow.utils import template_substitute
+from feaflow.utils import render_template
 
 
 class SqlComputeConfig(ComputeConfig):
@@ -21,4 +21,4 @@ class SqlCompute(Compute):
         super().__init__(config)
 
     def get_sql(self, template_context: Optional[Dict[str, Any]] = None):
-        return template_substitute(self._config.sql, template_context)
+        return render_template(self._config.sql, template_context)
