@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from pydantic.typing import Literal
+from typing_extensions import Literal
 
 from feaflow.abstracts import Compute, ComputeConfig
 from feaflow.utils import template_substitute

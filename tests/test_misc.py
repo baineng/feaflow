@@ -1,6 +1,6 @@
 import pytest
 
-from feaflow.sources import QuerySource, QuerySourceConfig
+from feaflow.source.query import QuerySource, QuerySourceConfig
 from feaflow.utils import template_substitute
 
 

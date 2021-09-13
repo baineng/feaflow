@@ -1,11 +1,11 @@
 import pytest
 
-from feaflow.computes import SqlComputeConfig
+from feaflow.compute.sql import SqlComputeConfig
 from feaflow.exceptions import ConfigLoadError
-from feaflow.job import Job, JobConfig
+from feaflow.job import Job
 from feaflow.project import Project
-from feaflow.sinks import TableSinkConfig
-from feaflow.sources import QuerySourceConfig
+from feaflow.sink.table import TableSinkConfig
+from feaflow.source.query import QuerySourceConfig
 
 
 def test_create_project(example_project_path):

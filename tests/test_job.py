@@ -1,7 +1,7 @@
-from feaflow.computes import SqlCompute
-from feaflow.job import Job, JobConfig
-from feaflow.sinks import TableSink
-from feaflow.sources import QuerySource
+from feaflow.compute.sql import SqlCompute
+from feaflow.job import Job
+from feaflow.sink.table import TableSink
+from feaflow.source.query import QuerySource
 
 
 def test_construct_job(example_project):

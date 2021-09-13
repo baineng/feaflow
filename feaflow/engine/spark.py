@@ -4,7 +4,7 @@ from pydantic.typing import Literal
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
 from feaflow.abstracts import ComputeUnit
-from feaflow.computes import SqlCompute
+from feaflow.compute.sql import SqlCompute
 from feaflow.engine import (
     ComputeUnitHandler,
     Engine,
@@ -14,8 +14,9 @@ from feaflow.engine import (
 )
 from feaflow.exceptions import EngineInitError
 from feaflow.job import Job
-from feaflow.sinks import TableSink
-from feaflow.sources import PandasDataFrameSource, QuerySource
+from feaflow.sink.table import TableSink
+from feaflow.source.pandas import PandasDataFrameSource
+from feaflow.source.query import QuerySource
 from feaflow.utils import create_random_str, split_cols
 
 
