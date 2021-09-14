@@ -7,9 +7,9 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 INSTALL_REQUIRES = ["pydantic>=1.0.0", "PyYAML>=5.4.*", "Jinja2>=2.0.0"]
 
-AIRFLOW_REQUIRES = ["apache-airflow>=2.0.0"]
+AIRFLOW_REQUIRES = ["apache-airflow"]
 
-SPARK_REQUIRES = ["pyspark>=2.4.3"]
+SPARK_REQUIRES = ["pyspark"]
 
 DEV_REQUIRES = list(
     set(
