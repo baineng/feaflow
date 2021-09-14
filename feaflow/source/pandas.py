@@ -52,6 +52,11 @@ class PandasDataFrameSource(Source):
                 PandasDataFrameSourceSupportedFileTypes.CSV: pd.read_csv,
                 PandasDataFrameSourceSupportedFileTypes.JSON: pd.read_json,
                 PandasDataFrameSourceSupportedFileTypes.PARQUET: pd.read_parquet,
-                PandasDataFrameSourceSupportedFileTypes.ORC: pd.read_orc,
             }
+            try:
+                # Since read_orc was added in Pandas 1.0.0, here just ignore the AttributeError for old version
+                _mapping[PandasDataFrameSourceSupportedFileTypes.ORC] = pd.read_orc
+            except AttributeError:
+                pass
+
             return _mapping[config.file.type](config.file.path, **config.file.args)

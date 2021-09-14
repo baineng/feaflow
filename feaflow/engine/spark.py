@@ -69,6 +69,10 @@ class SparkEngineSession(EngineSession):
         )
         self.handle(context, job)
 
+    def stop(self):
+        if self._spark_session:
+            self._spark_session.stop()
+
     def _get_or_create_spark_session(
         self, job_name: str, config_overlay: Optional[Dict[str, Any]] = None
     ) -> SparkSession:
@@ -101,8 +105,7 @@ class SparkEngineSession(EngineSession):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._spark_session:
-            self._spark_session.stop()
+        self.stop()
 
 
 class SparkEngineRunContext(EngineRunContext):
