@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Union
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.version import version as airflow_version
 from dateutil.relativedelta import relativedelta
 
 from feaflow.abstracts import SchedulerConfig
@@ -54,6 +54,10 @@ def create_dag_from_job(project: Project, job: Job) -> DAG:
         catchup=airflow_config.catchup,
         dagrun_timeout=airflow_config.dagrun_timeout,
     ) as dag:
+        if str(airflow_version).startswith("1."):
+            from airflow.operators.python_operator import PythonOperator
+        else:
+            from airflow.operators.python import PythonOperator
 
         _ = PythonOperator(
             task_id="run_job",

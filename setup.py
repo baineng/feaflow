@@ -11,21 +11,19 @@ AIRFLOW_REQUIRES = ["apache-airflow"]
 
 SPARK_REQUIRES = ["pyspark"]
 
-DEV_REQUIRES = list(
-    set(
-        [
-            "flake8",
-            "black==19.10b0",
-            "isort>=5",
-            "mypy==0.790",
-            "pytest==6.0.0",
-            "pytest-xdist",
-            "assertpy==1.1",
-            "pandas>=1.0.0",
-        ]
-        + AIRFLOW_REQUIRES
-        + SPARK_REQUIRES
-    )
+DEV_REQUIRES = (
+    [
+        "flake8",
+        "black==19.10b0",
+        "isort>=5",
+        "mypy==0.790",
+        "pytest==6.0.0",
+        "pytest-xdist",
+        "assertpy==1.1",
+        "pandas>=1.0.0",
+    ]
+    + AIRFLOW_REQUIRES
+    + SPARK_REQUIRES
 )
 
 setup(
