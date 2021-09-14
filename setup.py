@@ -34,7 +34,7 @@ setup(
     description="Flow Features Ingestion By DSL",
     long_description=readme,
     long_description_content_type="text/markdown",
-    python_requires=">=3.6.0",
+    python_requires=">=3.6.1",
     url="https://github.com/thenetcircle/feaflow",
     project_urls={"Bug Tracker": "https://github.com/thenetcircle/feaflow/issues",},
     license="Apache License, Version 2.0",
