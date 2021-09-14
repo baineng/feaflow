@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as f:
     readme = f.read()
@@ -40,7 +40,7 @@ setup(
     url="https://github.com/thenetcircle/feaflow",
     project_urls={"Bug Tracker": "https://github.com/thenetcircle/feaflow/issues",},
     license="Apache License, Version 2.0",
-    packages=["feaflow"],
+    packages=find_packages(include=("feaflow*",)),
     install_requires=INSTALL_REQUIRES,
     extras_require={
         "dev": DEV_REQUIRES,
