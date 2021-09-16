@@ -1,5 +1,6 @@
 name: test_job1
-engine: default_spark
+engine:
+  use: default_spark
 
 scheduler:
   schedule_interval: '0 6 * * *'

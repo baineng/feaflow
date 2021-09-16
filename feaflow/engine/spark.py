@@ -17,7 +17,7 @@ from feaflow.job import Job
 from feaflow.sink.table import TableSink
 from feaflow.source.pandas import PandasDataFrameSource
 from feaflow.source.query import QuerySource
-from feaflow.utils import create_random_str, split_cols
+from feaflow.utils import create_random_str, deep_merge_models, split_cols
 
 
 class SparkEngineConfig(EngineConfig):
@@ -63,7 +63,9 @@ class SparkEngineSession(EngineSession):
         assert (
             job.engine_name == engine_config.name
         ), f"The job '{job}' is not able to be run on engine '{engine_config.name}'."
-        spark_session = self._get_or_create_spark_session(job.name)
+        spark_session = self._get_or_create_spark_session(
+            job.name, job.config.engine.config_overlay
+        )
         context = SparkEngineRunContext(
             engine=self._engine, engine_session=self, spark_session=spark_session
         )
@@ -87,7 +89,9 @@ class SparkEngineSession(EngineSession):
 
         if config_overlay is not None:
             assert "type" not in config_overlay, "type is not changeable"
-            engine_config = engine_config.copy(update=config_overlay)
+            engine_config = deep_merge_models(
+                engine_config, SparkEngineConfig(type="spark", **config_overlay)
+            )
 
         try:
             builder = SparkSession.builder.master(engine_config.master).appName(

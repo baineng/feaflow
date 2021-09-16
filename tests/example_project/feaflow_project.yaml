@@ -4,3 +4,7 @@ engines:
   - name: default_spark
     type: spark
     master: local
+
+
+scheduler_default:
+  catchup: true

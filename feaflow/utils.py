@@ -1,3 +1,4 @@
+import collections
 import importlib
 import random
 import time
@@ -8,6 +9,7 @@ from feaflow.abstracts import (
     ComputeUnit,
     FeaflowConfig,
     FeaflowConfigurableComponent,
+    FeaflowModel,
     SchedulerConfig,
 )
 
@@ -78,3 +80,23 @@ def render_template(
     if template_context is None:
         template_context = {}
     return Template(template_source).render(template_context)
+
+
+def deep_merge_models(model: FeaflowModel, merge_model: FeaflowModel) -> FeaflowModel:
+    assert type(model) == type(merge_model)
+    source_dict = merge_model.dict(exclude_defaults=True)
+    dest_dict = model.dict(exclude_defaults=True)
+    deep_merge_dicts(source_dict, dest_dict)
+    return type(model)(**source_dict)
+
+
+def deep_merge_dicts(_dict: Dict, merge_dict: Dict):
+    for k, v in merge_dict.items():
+        if (
+            k in _dict
+            and isinstance(_dict[k], dict)
+            and isinstance(merge_dict[k], collections.Mapping)
+        ):
+            deep_merge_dicts(_dict[k], merge_dict[k])
+        else:
+            _dict[k] = merge_dict[k]

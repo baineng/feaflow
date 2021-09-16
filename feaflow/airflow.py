@@ -138,7 +138,7 @@ DEFAULT_TASK_ID = "run_job"
 
 
 def create_dag_from_job(project: Project, job: Job) -> DAG:
-    config = job.scheduler_config
+    config = job.merge_scheduler_config(project.config.scheduler_default)
     assert isinstance(config, AirflowSchedulerConfig)
 
     dag_args = config.dict(exclude={"dag_id", "task_id", "docker", "default_args"})

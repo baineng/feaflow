@@ -1,17 +1,20 @@
 import re
 from pathlib import Path
-from re import Pattern
-from typing import Any, List, Optional, Set, Union
+from typing import Any, List, Optional, Union
 
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
 
-from feaflow.abstracts import FeaflowModel
+from feaflow.abstracts import FeaflowModel, SchedulerConfig
 from feaflow.constants import BUILTIN_ENGINES
 from feaflow.engine import Engine, EngineConfig
 from feaflow.exceptions import ConfigLoadError
 from feaflow.job import Job, parse_job_config_file
-from feaflow.utils import create_config_from_dict, create_instance_from_config
+from feaflow.utils import (
+    create_config_from_dict,
+    create_instance_from_config,
+    create_scheduler_config_from_dict,
+)
 
 
 class ProjectConfig(FeaflowModel):
@@ -19,6 +22,7 @@ class ProjectConfig(FeaflowModel):
     root_path: DirectoryPath
     config_file_path: FilePath
     engines: List[EngineConfig]
+    scheduler_default: Optional[SchedulerConfig] = None
 
     def __init__(self, **data: Any):
         if "engines" in data:
@@ -26,6 +30,12 @@ class ProjectConfig(FeaflowModel):
             data["engines"] = [
                 create_config_from_dict(ec, BUILTIN_ENGINES) for ec in data["engines"]
             ]
+
+        if "scheduler_default" in data and data["scheduler_default"]:
+            assert type(data["scheduler_default"]) == dict
+            data["scheduler_default"] = create_scheduler_config_from_dict(
+                data["scheduler_default"]
+            )
 
         super().__init__(**data)
 

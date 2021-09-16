@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import constr
@@ -7,6 +7,7 @@ from pydantic import constr
 from feaflow.abstracts import (
     Compute,
     ComputeConfig,
+    FeaflowImmutableModel,
     FeaflowModel,
     SchedulerConfig,
     Sink,
@@ -20,18 +21,28 @@ from feaflow.utils import (
     create_config_from_dict,
     create_instance_from_config,
     create_scheduler_config_from_dict,
+    deep_merge_models,
 )
+
+
+class JobEngineConfig(FeaflowImmutableModel):
+    use: str
+    config_overlay: Optional[Dict[str, Any]] = None
 
 
 class JobConfig(FeaflowModel):
     name: constr(regex=r"^[^_]\w+$", strip_whitespace=True, strict=True)
-    engine: str
+    engine: JobEngineConfig
     scheduler: SchedulerConfig
     computes: List[ComputeConfig]
     sources: Optional[List[SourceConfig]] = None
     sinks: Optional[List[SinkConfig]] = None
 
     def __init__(self, **data: Any):
+        if "engine" in data:
+            if type(data["engine"]) == str:
+                data["engine"] = {"use": data["engine"]}
+
         if "scheduler" in data:
             assert type(data["scheduler"]) == dict
             data["scheduler"] = create_scheduler_config_from_dict(data["scheduler"])
@@ -41,6 +52,7 @@ class JobConfig(FeaflowModel):
             data["sources"] = [
                 create_config_from_dict(c, BUILTIN_SOURCES) for c in data["sources"]
             ]
+
         if "computes" in data:
             assert type(data["computes"]) == list
             data["computes"] = [
@@ -73,11 +85,7 @@ class Job:
 
     @property
     def engine_name(self) -> str:
-        return self._config.engine
-
-    @property
-    def scheduler_config(self) -> SchedulerConfig:
-        return self._config.scheduler
+        return self._config.engine.use
 
     @property
     def sources(self) -> List[Source]:
@@ -114,6 +122,18 @@ class Job:
                     else []
                 )
         return self._sinks
+
+    @property
+    def scheduler_config(self):
+        return self._config.scheduler
+
+    def merge_scheduler_config(
+        self, default: Optional[SchedulerConfig] = None
+    ) -> SchedulerConfig:
+        if not default or type(default) != type(self._config.scheduler):
+            return self.scheduler_config
+        else:
+            return deep_merge_models(self.scheduler_config, default)
 
     def __repr__(self):
         return f"Job({self._config.name})"
