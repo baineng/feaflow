@@ -7,8 +7,6 @@ from pytz import utc
 
 from feaflow import airflow
 
-DEFAULT_DATE = datetime(2016, 1, 1, tzinfo=utc)
-
 # Refs:
 # https://medium.com/@chandukavar/testing-in-airflow-part-1-dag-validation-tests-dag-definition-tests-and-unit-tests-2aa94970570c
 
@@ -28,15 +26,21 @@ def job2_dag(example_project) -> DAG:
 
 
 def test_create_dag(job1_dag):
-    assert job1_dag.owner == "feaflow_test"
     assert job1_dag.schedule_interval == "0 6 * * *"
     assert job1_dag.start_date == datetime(2021, 9, 10, tzinfo=utc)
     assert job1_dag.end_date == datetime(2021, 11, 1, tzinfo=utc)
-    assert job1_dag.catchup == True
+    assert job1_dag.catchup == False
     assert job1_dag.dagrun_timeout == timedelta(seconds=300)
     assert job1_dag.default_args["depends_on_past"] == True
     assert job1_dag.default_args["retries"] == 2
     assert job1_dag.default_args["retry_delay"] == timedelta(seconds=10)
+    assert job1_dag.description == "This is a test dag description"
+    assert job1_dag.tags == ["JOB1", "TEST"]
+
+    task = job1_dag.get_task("test_docker")
+    assert type(task).__name__ == "DockerOperator"
+    assert task.image == "python:3.7"
+    assert task.command == 'bash -e "env"'
 
 
 def test_dag_import(example_project):
