@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 INSTALL_REQUIRES = ["pydantic>=1.0.0", "PyYAML>=5.4.*", "Jinja2>=2.0.0"]
 
-AIRFLOW_REQUIRES = ["apache-airflow"]
+AIRFLOW_REQUIRES = ["apache-airflow>=2.0.0"]
 
 SPARK_REQUIRES = ["pyspark"]
 
@@ -34,7 +34,7 @@ setup(
     description="Flow Features Ingestion By DSL",
     long_description=readme,
     long_description_content_type="text/markdown",
-    python_requires=">=3.6.1",
+    python_requires=">=3.7.0",
     url="https://github.com/thenetcircle/feaflow",
     project_urls={"Bug Tracker": "https://github.com/thenetcircle/feaflow/issues",},
     license="Apache License, Version 2.0",
