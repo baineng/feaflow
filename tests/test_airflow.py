@@ -16,14 +16,14 @@ DEFAULT_DATE = datetime(2016, 1, 1, tzinfo=utc)
 @pytest.fixture
 def job1_dag(example_project) -> DAG:
     dags = airflow.create_dags_from_project(example_project)
-    job1_dag: DAG = next(filter(lambda d: d.dag_id == "test_job1", dags))
+    job1_dag = next(filter(lambda d: d.dag_id == "test_job1", dags))
     return job1_dag
 
 
 @pytest.fixture
 def job2_dag(example_project) -> DAG:
     dags = airflow.create_dags_from_project(example_project)
-    job1_dag: DAG = next(filter(lambda d: d.dag_id == "test_job2", dags))
+    job1_dag = next(filter(lambda d: d.dag_id == "test_job2", dags))
     return job1_dag
 
 
@@ -51,8 +51,8 @@ def test_dag_from_dag_bag(example_project):
     test_create_dag(job1_dag)
 
 
-@pytest.mark.airflow
-def test_run_dag(job2_dag, capsys):
+@pytest.mark.integration
+def test_run_dag(airflow_init, job2_dag):
     task = job2_dag.get_task("run_job")
     ti = TaskInstance(task=task, execution_date=datetime.now())
     result = task.execute(ti.get_template_context())

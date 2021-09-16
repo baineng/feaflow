@@ -30,7 +30,7 @@ def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
     return expected_result
 
 
-@pytest.mark.spark
+@pytest.mark.integration
 def test_run_job1(spark_run_context, job1):
     expected = prepare_dataset(spark_run_context.spark_session)
     spark_run_context.engine_session.run(job1)
@@ -44,7 +44,7 @@ def test_run_job1(spark_run_context, job1):
     )
 
 
-@pytest.mark.spark
+@pytest.mark.integration
 def test_run_job2(spark_run_context, job2, job2_expect_result):
     spark_run_context.engine_session.run(job2)
 

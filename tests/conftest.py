@@ -1,4 +1,7 @@
 import multiprocessing
+import os
+import shutil
+import tempfile
 from pathlib import Path
 from sys import platform
 
@@ -10,11 +13,14 @@ from feaflow.project import Project
 from feaflow.utils import create_random_str
 
 
-def pytest_configure():
+def pytest_configure(config):
     if platform in ["darwin", "windows"]:
         multiprocessing.set_start_method("spawn")
     else:
         multiprocessing.set_start_method("fork")
+
+    if "not integration" not in config.getoption("-m"):
+        os.environ["AIRFLOW_HOME"] = tempfile.mkdtemp()
 
 
 @pytest.fixture
@@ -76,3 +82,12 @@ def job2_expect_result():
             "amount": [2, 2, 3, 3, 2, 1, 2, 2, 1, 2],
         }
     )
+
+
+@pytest.fixture(scope="session")
+def airflow_init(tmpdir_factory):
+    from airflow.utils import db
+
+    db.initdb()
+    yield
+    shutil.rmtree(os.environ["AIRFLOW_HOME"], ignore_errors=True)
