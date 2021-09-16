@@ -1,5 +1,7 @@
+import re
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from re import Pattern
+from typing import Any, List, Optional, Set, Union
 
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
@@ -64,14 +66,7 @@ class Project:
         Scan jobs in the project root path,
         any yaml files start or end with "job" will be considered as a job config file.
         """
-        jobs_1 = [
-            f.resolve() for f in self.root_path.glob("**/job*.yaml") if f.is_file()
-        ]
-        jobs_2 = [
-            f.resolve() for f in self.root_path.glob("**/*job.yaml") if f.is_file()
-        ]
-        job_conf_files = set(jobs_1 + jobs_2)
-
+        job_conf_files = self._find_files(r"\/job.*\.ya?ml$", r"\/.*?job\.ya?ml$")
         job_configs = [parse_job_config_file(f) for f in job_conf_files]
         jobs = [Job(c) for c in job_configs]
         return jobs
@@ -81,16 +76,32 @@ class Project:
         with engine.new_session() as engine_session:
             engine_session.run(job)
 
+    def _find_files(self, *patterns) -> List:
+        def _match_any_pattern(f: Path) -> bool:
+            for pat in patterns:
+                if re.search(pat, str(f.resolve())):
+                    return True
+            return False
+
+        return [
+            f.resolve()
+            for f in self.root_path.glob("**/*")
+            if f.is_file() and _match_any_pattern(f)
+        ]
+
 
 def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
     root_path = Path(path)
     if not root_path.exists():
         raise FileNotFoundError(f"The project path `{path}` does not exist.")
 
-    config_file_path = root_path.joinpath("feaflow.yaml")
-    if not config_file_path.exists():
+    if root_path.joinpath("feaflow_project.yaml").exists():
+        config_file_path = root_path.joinpath("feaflow_project.yaml")
+    elif root_path.joinpath("feaflow_project.yaml").exists():
+        config_file_path = root_path.joinpath("feaflow_project.yaml")
+    else:
         raise FileNotFoundError(
-            f"The project path `{path}` does not include feaflow.yaml."
+            f"The project path `{path}` does not include feaflow_project.yaml."
         )
 
     try:

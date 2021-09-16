@@ -22,7 +22,7 @@ def test_invalid_project(tmpdir):
 
     invalid_config_file = """
     """
-    with open(tmpdir.join("feaflow.yaml"), "w") as f:
+    with open(tmpdir.join("feaflow_project.yaml"), "w") as f:
         f.write(invalid_config_file)
     with pytest.raises(ConfigLoadError):
         Project(tmpdir)
