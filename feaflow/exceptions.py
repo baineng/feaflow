@@ -2,6 +2,13 @@ class FeaflowException(Exception):
     pass
 
 
+class JobNotFoundError(FeaflowException):
+    def __init__(self, project_root: str, job_name: str):
+        super().__init__(
+            f"Could not find job '{job_name}' in project directory '{project_root}'"
+        )
+
+
 class ConfigLoadError(FeaflowException):
     def __init__(self, config_path: str):
         super().__init__(f"Could not load config file '{config_path}`")

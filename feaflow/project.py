@@ -9,13 +9,14 @@ from pytz import utc
 
 from feaflow.abstracts import FeaflowModel, SchedulerConfig
 from feaflow.constants import BUILTIN_ENGINES
-from feaflow.engine import Engine, EngineConfig, EngineSession
+from feaflow.engine import Engine, EngineConfig
 from feaflow.exceptions import ConfigLoadError
 from feaflow.job import Job, parse_job_config_file
 from feaflow.utils import (
     create_config_from_dict,
     create_instance_from_config,
     create_scheduler_config_from_dict,
+    make_tzaware,
 )
 
 
@@ -83,6 +84,13 @@ class Project:
         jobs = [Job(c) for c in job_configs]
         return jobs
 
+    def get_job(self, job_name: str) -> Optional[Job]:
+        jobs = self.scan_jobs()
+        for job in jobs:
+            if job_name == job.name:
+                return job
+        return None
+
     def run_job(
         self,
         job: Job,
@@ -90,8 +98,7 @@ class Project:
         upstream_template_context: Optional[Dict[str, Any]] = None,
     ):
         # for execution_date with no timezone, just replace to utc
-        if execution_date.utcoffset() is None:
-            execution_date = execution_date.replace(tzinfo=utc)
+        execution_date = make_tzaware(execution_date)
 
         engine = self.get_engine_by_name(job.engine_name)
         with engine.new_session() as engine_session:

@@ -2,7 +2,10 @@ import collections
 import importlib
 import random
 import time
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+from pytz import utc
 
 from feaflow import exceptions
 from feaflow.abstracts import (
@@ -100,3 +103,10 @@ def deep_merge_dicts(_dict: Dict, merge_dict: Dict):
             deep_merge_dicts(_dict[k], merge_dict[k])
         else:
             _dict[k] = merge_dict[k]
+
+
+def make_tzaware(t: datetime) -> datetime:
+    if t.utcoffset() is None:
+        return t.replace(tzinfo=utc)
+    else:
+        return t
