@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
+from pytz import utc
 
 from feaflow.abstracts import FeaflowModel, SchedulerConfig
 from feaflow.constants import BUILTIN_ENGINES
@@ -88,6 +89,10 @@ class Project:
         execution_date: datetime,
         upstream_template_context: Optional[Dict[str, Any]] = None,
     ):
+        # for execution_date with no timezone, just replace to utc
+        if execution_date.utcoffset() is None:
+            execution_date = execution_date.replace(tzinfo=utc)
+
         engine = self.get_engine_by_name(job.engine_name)
         with engine.new_session() as engine_session:
             template_context = self.construct_template_context(
@@ -113,8 +118,8 @@ class Project:
 
         context = {
             "project_name": self.name,
-            "project_root": str(self.root_path.resolve()),
-            "job_root": str(job.config.config_file_path.parent.resolve()),
+            "project_root": self.root_path.resolve(),
+            "job_root": job.config.config_file_path.parent.resolve(),
             "job_name": job.name,
             "engine_name": job.engine_name,
             "execution_date": execution_date,
