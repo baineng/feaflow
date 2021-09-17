@@ -7,6 +7,7 @@ from pydantic import Field
 from typing_extensions import Literal
 
 from feaflow.abstracts import FeaflowImmutableModel, Source, SourceConfig
+from feaflow.utils import render_template
 
 
 class PandasDataFrameSourceSupportedFileTypes(str, Enum):
@@ -42,7 +43,9 @@ class PandasDataFrameSource(Source):
         assert isinstance(config, PandasDataFrameSourceConfig)
         super().__init__(config)
 
-    def get_dataframe(self) -> pd.DataFrame:
+    def get_dataframe(
+        self, template_context: Optional[Dict[str, Any]] = None
+    ) -> pd.DataFrame:
         config: PandasDataFrameSourceConfig = self.config
         if config.dict_ is not None:
             return pd.DataFrame(config.dict_)
@@ -59,4 +62,5 @@ class PandasDataFrameSource(Source):
             except AttributeError:
                 pass
 
-            return _mapping[config.file.type](config.file.path, **config.file.args)
+            file_path = render_template(config.file.path, template_context)
+            return _mapping[config.file.type](file_path, **config.file.args)

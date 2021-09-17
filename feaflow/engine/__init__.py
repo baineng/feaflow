@@ -39,8 +39,11 @@ class EngineSession(ABC):
     _handlers: List[Type[ComputeUnitHandler]] = None
 
     @abstractmethod
-    def run(self, job):
-        """ :type job: `feaflow.job.Job` """
+    def run(self, job, upstream_template_context: Optional[Dict[str, Any]] = None):
+        """
+        :type job: `feaflow.job.Job`
+        :type upstream_template_context: Optional[Dict[str, Any]]
+        """
         raise NotImplementedError
 
     def get_handlers(self) -> Optional[List[Type[ComputeUnitHandler]]]:

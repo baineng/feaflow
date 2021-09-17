@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Dict, Optional
 
 from pydantic.typing import Literal
@@ -58,7 +59,7 @@ class SparkEngineSession(EngineSession):
     def engine(self) -> SparkEngine:
         return self._engine
 
-    def run(self, job: Job):
+    def run(self, job: Job, upstream_template_context: Optional[Dict[str, Any]] = None):
         engine_config = self._engine.config
         assert (
             job.engine_name == engine_config.name
@@ -66,8 +67,12 @@ class SparkEngineSession(EngineSession):
         spark_session = self._get_or_create_spark_session(
             job.name, job.config.engine.config_overlay
         )
+        template_context = upstream_template_context or {}
         context = SparkEngineRunContext(
-            engine=self._engine, engine_session=self, spark_session=spark_session
+            engine=self._engine,
+            engine_session=self,
+            spark_session=spark_session,
+            template_context=template_context,
         )
         self.handle(context, job)
 
@@ -138,8 +143,7 @@ class QuerySourceHandler(ComputeUnitHandler):
 
         df_id = (
             unit.get_alias(template_context)
-            if unit.get_alias() is not None
-            else f"source_{unit.type}_{create_random_str()}"
+            or f"source_{unit.type}_{create_random_str()}"
         )
         df = spark.sql(unit.get_sql(template_context))
         df.createOrReplaceTempView(df_id)
@@ -158,7 +162,7 @@ class PandasDataFrameSourceHandler(ComputeUnitHandler):
 
         spark = context.spark_session
         df_id = f"source_{unit.type}_{create_random_str()}"
-        df = spark.createDataFrame(unit.get_dataframe())
+        df = spark.createDataFrame(unit.get_dataframe(context.template_context))
         df.createOrReplaceTempView(df_id)
         context.source_results[df_id] = df
 
@@ -177,7 +181,7 @@ class SqlComputeHandler(ComputeUnitHandler):
         assert isinstance(unit, SqlCompute)
 
         spark = context.spark_session
-        template_context = context.template_context
+        template_context = copy.deepcopy(context.template_context)
         template_context.update(
             {
                 f"source_{index}": source_df_id

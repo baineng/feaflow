@@ -1,13 +1,14 @@
 import re
+from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
 
 from feaflow.abstracts import FeaflowModel, SchedulerConfig
 from feaflow.constants import BUILTIN_ENGINES
-from feaflow.engine import Engine, EngineConfig
+from feaflow.engine import Engine, EngineConfig, EngineSession
 from feaflow.exceptions import ConfigLoadError
 from feaflow.job import Job, parse_job_config_file
 from feaflow.utils import (
@@ -81,10 +82,29 @@ class Project:
         jobs = [Job(c) for c in job_configs]
         return jobs
 
-    def run_job(self, job: Job):
+    def run_job(
+        self, job: Job, upstream_template_context: Optional[Dict[str, Any]] = None
+    ):
         engine = self.get_engine_by_name(job.engine_name)
         with engine.new_session() as engine_session:
-            engine_session.run(job)
+            template_context = self._construct_template_context(
+                job, upstream_template_context
+            )
+            engine_session.run(job, template_context)
+
+    def _construct_template_context(
+        self, job: Job, upstream_template_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        context = {
+            "PROJECT_NAME": self.name,
+            "PROJECT_ROOT": str(self.root_path.resolve()),
+            "JOB_ROOT": str(job.config.config_file_path.parent.resolve()),
+            "JOB_NAME": job.name,
+            "ENGINE_NAME": job.engine_name,
+            "RUN_TIME": datetime.utcnow(),
+        }
+        upstream_template_context.update(context)
+        return upstream_template_context
 
     def _find_files(self, *patterns) -> List:
         def _match_any_pattern(f: Path) -> bool:
@@ -117,10 +137,13 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
     try:
         with open(config_file_path) as f:
             config = yaml.safe_load(f)
-            config["name"] = config["project_name"]
+            project_name = config["project_name"]
             del config["project_name"]
-            config["root_path"] = root_path
-            config["config_file_path"] = config_file_path
-            return ProjectConfig(**config)
+            return ProjectConfig(
+                name=project_name,
+                root_path=root_path,
+                config_file_path=config_file_path,
+                **config,
+            )
     except Exception:
         raise ConfigLoadError(str(config_file_path.absolute()))

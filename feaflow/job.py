@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import yaml
-from pydantic import constr
+from pydantic import DirectoryPath, FilePath, constr
 
 from feaflow.abstracts import (
     Compute,
@@ -32,6 +32,7 @@ class JobEngineConfig(FeaflowImmutableModel):
 
 class JobConfig(FeaflowModel):
     name: constr(regex=r"^[^_]\w+$", strip_whitespace=True, strict=True)
+    config_file_path: FilePath
     engine: JobEngineConfig
     scheduler: SchedulerConfig
     computes: List[ComputeConfig]
@@ -147,6 +148,6 @@ def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
     try:
         with open(job_conf_path) as f:
             config = yaml.safe_load(f)
-            return JobConfig(**config)
+            return JobConfig(config_file_path=job_conf_path, **config)
     except Exception:
         raise ConfigLoadError(str(job_conf_path.absolute()))
