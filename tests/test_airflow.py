@@ -58,7 +58,5 @@ def test_dag_from_dag_bag(example_project):
 
 @pytest.mark.integration
 def test_run_dag(airflow_init, job2_dag):
-    task = job2_dag.get_task("run_job")
-    ti = TaskInstance(task=task, execution_date=datetime.now())
-    result = task.execute(ti.get_template_context())
-    assert result is None
+    task = job2_dag.get_task(airflow.DEFAULT_TASK_ID)
+    task.run()

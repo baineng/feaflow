@@ -153,19 +153,18 @@ def create_dag_from_job(project: Project, job: Job) -> DAG:
     with DAG(**dag_args) as dag:
 
         if config.docker:
-            docker_args = config.docker.dict()
-            docker_args = {k: v for k, v in docker_args.items() if v is not None}
+            docker_args = config.docker.dict(exclude_none=True)
             _ = DockerOperator(task_id=task_id, **docker_args)
 
         else:
-
-            def _run_job(project: Project, job: Job):
-                project.run_job(job)
-
             _ = PythonOperator(
                 task_id=task_id,
-                python_callable=_run_job,
+                python_callable=_python_run_job,
                 op_kwargs={"project": project, "job": job},
             )
 
         return dag
+
+
+def _python_run_job(project: Project, job: Job, execution_date: datetime, **context):
+    project.run_job(job, execution_date, context)

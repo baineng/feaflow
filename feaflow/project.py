@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -83,28 +83,53 @@ class Project:
         return jobs
 
     def run_job(
-        self, job: Job, upstream_template_context: Optional[Dict[str, Any]] = None
+        self,
+        job: Job,
+        execution_date: datetime,
+        upstream_template_context: Optional[Dict[str, Any]] = None,
     ):
         engine = self.get_engine_by_name(job.engine_name)
         with engine.new_session() as engine_session:
-            template_context = self._construct_template_context(
-                job, upstream_template_context
+            template_context = self.construct_template_context(
+                job, execution_date, upstream_template_context
             )
             engine_session.run(job, template_context)
 
-    def _construct_template_context(
-        self, job: Job, upstream_template_context: Optional[Dict[str, Any]] = None
+    def construct_template_context(
+        self,
+        job: Job,
+        execution_date: datetime,
+        upstream_template_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        ds = execution_date.strftime("%Y-%m-%d")
+        ts = execution_date.isoformat()
+        yesterday_ds = (execution_date - timedelta(1)).strftime("%Y-%m-%d")
+        tomorrow_ds = (execution_date + timedelta(1)).strftime("%Y-%m-%d")
+        ds_nodash = ds.replace("-", "")
+        ts_nodash = execution_date.strftime("%Y%m%dT%H%M%S")
+        ts_nodash_with_tz = ts.replace("-", "").replace(":", "")
+        yesterday_ds_nodash = yesterday_ds.replace("-", "")
+        tomorrow_ds_nodash = tomorrow_ds.replace("-", "")
+
         context = {
-            "PROJECT_NAME": self.name,
-            "PROJECT_ROOT": str(self.root_path.resolve()),
-            "JOB_ROOT": str(job.config.config_file_path.parent.resolve()),
-            "JOB_NAME": job.name,
-            "ENGINE_NAME": job.engine_name,
-            "RUN_TIME": datetime.utcnow(),
+            "project_name": self.name,
+            "project_root": str(self.root_path.resolve()),
+            "job_root": str(job.config.config_file_path.parent.resolve()),
+            "job_name": job.name,
+            "engine_name": job.engine_name,
+            "execution_date": execution_date,
+            "ds": ds,
+            "ts": ts,
+            "yesterday_ds": yesterday_ds,
+            "tomorrow_ds": tomorrow_ds,
+            "ds_nodash": ds_nodash,
+            "ts_nodash": ts_nodash,
+            "ts_nodash_with_tz": ts_nodash_with_tz,
+            "yesterday_ds_nodash": yesterday_ds_nodash,
+            "tomorrow_ds_nodash": tomorrow_ds_nodash,
         }
-        upstream_template_context.update(context)
-        return upstream_template_context
+        context.update(upstream_template_context)
+        return context
 
     def _find_files(self, *patterns) -> List:
         def _match_any_pattern(f: Path) -> bool:
