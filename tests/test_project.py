@@ -32,8 +32,7 @@ def test_scan_jobs(example_project):
     jobs = example_project.scan_jobs()
     assert len(jobs) == 2
 
-    job1: Job = next(filter(lambda j: j.name == "test_job1", jobs))
-    job1_config = job1.config
+    job1_config = next(filter(lambda j: j.name == "test_job1", jobs))
     assert job1_config.scheduler.schedule_interval == "0 6 * * *"
     assert job1_config.engine.use == "default_spark"
     assert type(job1_config.sources[0]) == QuerySourceConfig

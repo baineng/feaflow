@@ -22,7 +22,6 @@ from feaflow.utils import (
     construct_config_from_dict,
     construct_impl_from_config,
     construct_scheduler_config_from_dict,
-    deep_merge_models,
 )
 
 
@@ -129,14 +128,6 @@ class Job:
     @property
     def scheduler_config(self):
         return self._config.scheduler
-
-    def merge_scheduler_config(
-        self, default: Optional[SchedulerConfig] = None
-    ) -> SchedulerConfig:
-        if not default or type(default) != type(self._config.scheduler):
-            return self.scheduler_config
-        else:
-            return deep_merge_models(self.scheduler_config, default)
 
     def __repr__(self):
         return f"Job({self._config.name})"

@@ -5,11 +5,12 @@ from feaflow.compute.sql import SqlCompute
 from feaflow.job import Job
 from feaflow.sink.table import TableSink
 from feaflow.source.query import QuerySource
+from feaflow.utils import merge_scheduler_config
 
 
 def test_construct_job(example_project):
     jobs = example_project.scan_jobs()
-    job1: Job = next(filter(lambda j: j.name == "test_job1", jobs))
+    job1: Job = Job(next(filter(lambda j: j.name == "test_job1", jobs)))
     assert job1.config.name == "test_job1"
 
     assert len(job1.sources) == 2
@@ -25,8 +26,8 @@ def test_construct_job(example_project):
 
 
 def test_scheduler_config(job1):
-    assert job1.merge_scheduler_config().schedule_interval == "0 6 * * *"
-    assert job1.merge_scheduler_config().full_filepath == None
+    assert job1.scheduler_config.schedule_interval == "0 6 * * *"
+    assert job1.scheduler_config.full_filepath == None
 
     default_config = AirflowSchedulerConfig(
         schedule_interval="* * * * *",
@@ -35,13 +36,27 @@ def test_scheduler_config(job1):
             queue="abc", max_retry_delay=timedelta(seconds=100)
         ),
     )
-    assert job1.merge_scheduler_config(default_config).schedule_interval == "0 6 * * *"
-    assert job1.merge_scheduler_config(default_config).full_filepath == "/tmp/"
-    assert job1.merge_scheduler_config(default_config).default_args.queue == "abc"
-    assert job1.merge_scheduler_config(
-        default_config
+    assert (
+        merge_scheduler_config(job1.scheduler_config, default_config).schedule_interval
+        == "0 6 * * *"
+    )
+    assert (
+        merge_scheduler_config(job1.scheduler_config, default_config).full_filepath
+        == "/tmp/"
+    )
+    assert (
+        merge_scheduler_config(job1.scheduler_config, default_config).default_args.queue
+        == "abc"
+    )
+    assert merge_scheduler_config(
+        job1.scheduler_config, default_config
     ).default_args.max_retry_delay == timedelta(seconds=100)
-    assert job1.merge_scheduler_config(default_config).default_args.retries == 2
-    assert job1.merge_scheduler_config(
-        default_config
+    assert (
+        merge_scheduler_config(
+            job1.scheduler_config, default_config
+        ).default_args.retries
+        == 2
+    )
+    assert merge_scheduler_config(
+        job1.scheduler_config, default_config
     ).default_args.retry_delay == timedelta(seconds=10)

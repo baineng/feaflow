@@ -10,8 +10,9 @@ from dateutil.relativedelta import relativedelta
 from docker.types import Mount
 
 from feaflow.abstracts import FeaflowImmutableModel, SchedulerConfig
-from feaflow.job import Job
+from feaflow.job import Job, JobConfig
 from feaflow.project import Project
+from feaflow.utils import merge_scheduler_config
 
 
 class DockerOperatorConfig(FeaflowImmutableModel):
@@ -126,45 +127,54 @@ class AirflowSchedulerConfig(SchedulerConfig):
 def create_dags_from_project(project: Project) -> List[DAG]:
     jobs = project.scan_jobs()
     dags = []
-    for job in jobs:
-        if not isinstance(job.scheduler_config, AirflowSchedulerConfig):
+    for job_config in jobs:
+        if not isinstance(job_config.scheduler, AirflowSchedulerConfig):
             # TODO log the case that jobs rely on other scheduler
             continue
-        dags.append(create_dag_from_job(project, job))
+        dags.append(create_dag_from_job(project, job_config))
     return dags
 
 
 DEFAULT_TASK_ID = "run_job"
 
 
-def create_dag_from_job(project: Project, job: Job) -> DAG:
-    config = job.merge_scheduler_config(project.config.scheduler_default)
-    assert isinstance(config, AirflowSchedulerConfig)
+def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
+    scheduler_config = merge_scheduler_config(
+        job_config.scheduler, project.config.scheduler_default
+    )
+    assert isinstance(scheduler_config, AirflowSchedulerConfig)
 
-    dag_args = config.dict(exclude={"dag_id", "task_id", "docker", "default_args"})
+    dag_args = scheduler_config.dict(
+        exclude={"dag_id", "task_id", "docker", "default_args"}
+    )
     dag_args = {k: v for k, v in dag_args.items() if v is not None}
-    dag_args["dag_id"] = config.dag_id or job.name
-    if config.default_args:
+    dag_args["dag_id"] = scheduler_config.dag_id or job_config.name
+    if scheduler_config.default_args:
         dag_args["default_args"] = {
-            k: v for k, v in config.default_args.dict().items() if v is not None
+            k: v
+            for k, v in scheduler_config.default_args.dict().items()
+            if v is not None
         }
-    task_id = config.task_id or DEFAULT_TASK_ID
+    task_id = scheduler_config.task_id or DEFAULT_TASK_ID
 
     with DAG(**dag_args) as dag:
 
-        if config.docker:
-            docker_args = config.docker.dict(exclude_none=True)
+        if scheduler_config.docker:
+            docker_args = scheduler_config.docker.dict(exclude_none=True)
             _ = DockerOperator(task_id=task_id, **docker_args)
 
         else:
             _ = PythonOperator(
                 task_id=task_id,
                 python_callable=_python_run_job,
-                op_kwargs={"project": project, "job": job},
+                op_kwargs={"project": project, "job_config": job_config},
             )
 
         return dag
 
 
-def _python_run_job(project: Project, job: Job, execution_date: datetime, **context):
+def _python_run_job(
+    project: Project, job_config: JobConfig, execution_date: datetime, **context
+):
+    job = Job(job_config)
     project.run_job(job, execution_date, context)

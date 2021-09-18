@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from feaflow.engine.spark import SparkEngine, SparkEngineRunContext, SparkEngineSession
+from feaflow.job import Job
 from feaflow.project import Project
 from feaflow.utils import create_random_str
 
@@ -19,8 +20,8 @@ def pytest_configure(config):
     else:
         multiprocessing.set_start_method("fork")
 
-    if "not integration" not in config.getoption("-m"):
-        os.environ["AIRFLOW_HOME"] = tempfile.mkdtemp()
+    # if "not integration" not in config.getoption("-m"):
+    #     os.environ["AIRFLOW_HOME"] = tempfile.mkdtemp()
 
 
 @pytest.fixture
@@ -54,13 +55,13 @@ def spark_run_context(example_project, tmpdir) -> SparkEngineRunContext:
 @pytest.fixture
 def job1(example_project):
     jobs = example_project.scan_jobs()
-    return next(filter(lambda j: j.name == "test_job1", jobs))
+    return Job(next(filter(lambda j: j.name == "test_job1", jobs)))
 
 
 @pytest.fixture
 def job2(example_project):
     jobs = example_project.scan_jobs()
-    return next(filter(lambda j: j.name == "test_job2", jobs))
+    return Job(next(filter(lambda j: j.name == "test_job2", jobs)))
 
 
 @pytest.fixture()

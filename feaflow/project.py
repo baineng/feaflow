@@ -10,7 +10,7 @@ from feaflow.abstracts import FeaflowModel, SchedulerConfig
 from feaflow.constants import BUILTIN_ENGINES
 from feaflow.engine import Engine, EngineConfig
 from feaflow.exceptions import ConfigLoadError
-from feaflow.job import Job, parse_job_config_file
+from feaflow.job import Job, JobConfig, parse_job_config_file
 from feaflow.utils import (
     construct_config_from_dict,
     construct_impl_from_config,
@@ -74,21 +74,20 @@ class Project:
                 return engine
         return None
 
-    def scan_jobs(self) -> List[Job]:
+    def scan_jobs(self) -> List[JobConfig]:
         """
         Scan jobs in the project root path,
         any yaml files start or end with "job" will be considered as a job config file.
         """
         job_conf_files = self._find_files(r"\/job.*\.ya?ml$", r"\/.*?job\.ya?ml$")
         job_configs = [parse_job_config_file(f) for f in job_conf_files]
-        jobs = [Job(c) for c in job_configs]
-        return jobs
+        return job_configs
 
     def get_job(self, job_name: str) -> Optional[Job]:
         jobs = self.scan_jobs()
-        for job in jobs:
-            if job_name == job.name:
-                return job
+        for job_config in jobs:
+            if job_name == job_config.name:
+                return Job(job_config)
         return None
 
     def run_job(
