@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from jinja2 import Environment, Template
+from jinja2.sandbox import SandboxedEnvironment
 from pytz import utc
 
 from feaflow import exceptions
@@ -75,15 +77,24 @@ def create_random_str(short: bool = False) -> str:
     return f"{int(time.time_ns())}_{random.randint(1000, 9999)}"
 
 
+_jinja2_env: Optional[Environment] = None
+
+
 def render_template(
     template_source: Any, template_context: Optional[Dict[str, Any]] = None
 ) -> [FeaflowModel, str]:
-    from jinja2 import Template
+    global _jinja2_env
+
+    if _jinja2_env is None:
+        _jinja2_env = SandboxedEnvironment(cache_size=0)
 
     if template_context is None:
         template_context = {}
 
-    if isinstance(template_source, FeaflowModel):
+    if isinstance(template_source, str):
+        return _jinja2_env.from_string(template_source).render(**template_context)
+
+    elif isinstance(template_source, FeaflowModel):
         if len(template_source._template_attrs) == 0:
             return template_source
         else:
@@ -101,6 +112,21 @@ def render_template(
             new_model.__config__.allow_mutation = old_allow_mutation
             return new_model
 
+    elif isinstance(template_source, tuple):
+        if type(template_source) is not tuple:
+            # Special case for named tuples
+            return template_source.__class__(
+                *(
+                    render_template(element, template_context)
+                    for element in template_source
+                )
+            )
+        else:
+            return tuple(
+                render_template(element, template_context)
+                for element in template_source
+            )
+
     elif isinstance(template_source, dict):
         return {
             k: render_template(v, template_context) for k, v in template_source.items()
@@ -109,8 +135,10 @@ def render_template(
     elif isinstance(template_source, list):
         return [render_template(v, template_context) for v in template_source]
 
-    elif isinstance(template_source, str):
-        return Template(template_source).render(template_context)
+    elif isinstance(template_source, set):
+        return {
+            render_template(element, template_context) for element in template_source
+        }
 
     else:
         return template_source
