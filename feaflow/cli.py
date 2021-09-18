@@ -6,7 +6,6 @@ import pkg_resources
 
 from feaflow.exceptions import JobNotFoundError
 from feaflow.project import Project
-from feaflow.utils import make_tzaware
 
 
 @click.group()
@@ -54,9 +53,6 @@ def entity_describe(ctx: click.Context, job_name: str, execution_date: datetime)
     Run a job from the project
     """
     project_dir = ctx.obj["PROJECT_DIR"]
-
-    print(execution_date)
-
     project = Project(project_dir)
     job = project.get_job(job_name)
     if not job:

@@ -10,8 +10,8 @@ class JobNotFoundError(FeaflowException):
 
 
 class ConfigLoadError(FeaflowException):
-    def __init__(self, config_path: str):
-        super().__init__(f"Could not load config file '{config_path}`")
+    def __init__(self, config_path: str, reason: str = ""):
+        super().__init__(f"Could not load config file '{config_path}', {reason}")
 
 
 class ClassImportError(Exception):

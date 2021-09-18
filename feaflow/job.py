@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import yaml
+import yaml.parser
 from pydantic import DirectoryPath, FilePath, constr
 
 from feaflow.abstracts import (
@@ -149,5 +150,10 @@ def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
         with open(job_conf_path) as f:
             config = yaml.safe_load(f)
             return JobConfig(config_file_path=job_conf_path, **config)
-    except Exception:
-        raise ConfigLoadError(str(job_conf_path.absolute()))
+    except yaml.parser.ParserError:
+        raise ConfigLoadError(
+            str(job_conf_path.absolute()),
+            "if you have used Jinja2 syntax, try to escape by quoting it or use |, > in the config.",
+        )
+    except Exception as ex:
+        raise ConfigLoadError(str(job_conf_path.absolute()), str(ex))

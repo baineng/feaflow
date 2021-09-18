@@ -140,7 +140,8 @@ class Project:
             "yesterday_ds_nodash": yesterday_ds_nodash,
             "tomorrow_ds_nodash": tomorrow_ds_nodash,
         }
-        context.update(upstream_template_context)
+        if upstream_template_context:
+            context.update(upstream_template_context)
         return context
 
     def _find_files(self, *patterns) -> List:

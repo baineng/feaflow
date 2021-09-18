@@ -15,13 +15,13 @@ sources:
   - type: pandas
     file:
       type: csv
-      path: data/pandas_df1.csv
+      path: "{{ project_root }}/../data/pandas_df1.csv"
       args:
         index_col: 0
 
 computes:
   - type: sql
-    sql: >-
+    sql: |-
       SELECT title, count(*) as amount
       FROM (
         SELECT * FROM {{ source_0 }}

@@ -21,19 +21,19 @@ scheduler:
 
 sources:
   - type: query
-    sql: >-
+    sql: |-
       SELECT id, title, published
       FROM events
 
   - type: query
-    sql: >-
+    sql: |-
       SELECT id, published
       FROM events
     alias: events_published
 
 computes:
   - type: sql
-    sql: >-
+    sql: |-
       SELECT title, count(*) as amount
       FROM {{ source_0 }}
       GROUP BY title
