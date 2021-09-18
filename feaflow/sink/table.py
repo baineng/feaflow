@@ -20,7 +20,7 @@ class TableSinkFormat(str, Enum):
 
 class TableSinkConfig(SinkConfig):
     _template_attrs: Tuple[str] = ("name", "cols", "partition_cols")
-    type: Literal["table"]
+    type: Literal["table"] = "table"
 
     name: str
     cols: Optional[str] = None
@@ -30,10 +30,6 @@ class TableSinkConfig(SinkConfig):
 
 
 class TableSink(Sink):
-    @classmethod
-    def create_config(cls, **data) -> TableSinkConfig:
-        return TableSinkConfig(impl_cls=cls, **data)
-
     def __init__(self, config: TableSinkConfig):
         assert isinstance(config, TableSinkConfig)
         super().__init__(config)

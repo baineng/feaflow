@@ -92,5 +92,4 @@ class EngineSession(ABC):
 
 
 class EngineConfig(FeaflowConfig, ABC):
-    impl_cls: Type[Engine]
     name: constr(regex=r"^[^_][\w]+$", strip_whitespace=True, strict=True)

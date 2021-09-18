@@ -27,7 +27,7 @@ class PandasDataFrameSourceFileConfig(FeaflowImmutableModel):
 
 class PandasDataFrameSourceConfig(SourceConfig):
     _template_attrs: Tuple[str] = ("file",)
-    type: Literal["pandas"]
+    type: Literal["pandas"] = "pandas"
 
     dict_: Optional[Dict[str, Any]] = Field(alias="dict", default=None)
     file: Optional[PandasDataFrameSourceFileConfig] = None
@@ -38,10 +38,6 @@ class PandasDataFrameSourceConfig(SourceConfig):
 
 
 class PandasDataFrameSource(Source):
-    @classmethod
-    def create_config(cls, **data) -> PandasDataFrameSourceConfig:
-        return PandasDataFrameSourceConfig(impl_cls=cls, **data)
-
     def __init__(self, config: PandasDataFrameSourceConfig):
         assert isinstance(config, PandasDataFrameSourceConfig)
         super().__init__(config)

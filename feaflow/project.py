@@ -12,9 +12,9 @@ from feaflow.engine import Engine, EngineConfig
 from feaflow.exceptions import ConfigLoadError
 from feaflow.job import Job, parse_job_config_file
 from feaflow.utils import (
-    create_config_from_dict,
-    create_instance_from_config,
-    create_scheduler_config_from_dict,
+    construct_config_from_dict,
+    construct_impl_from_config,
+    construct_scheduler_config_from_dict,
     make_tzaware,
 )
 
@@ -30,12 +30,13 @@ class ProjectConfig(FeaflowModel):
         if "engines" in data:
             assert type(data["engines"]) == list
             data["engines"] = [
-                create_config_from_dict(ec, BUILTIN_ENGINES) for ec in data["engines"]
+                construct_config_from_dict(ec, BUILTIN_ENGINES)
+                for ec in data["engines"]
             ]
 
         if "scheduler_default" in data and data["scheduler_default"]:
             assert type(data["scheduler_default"]) == dict
-            data["scheduler_default"] = create_scheduler_config_from_dict(
+            data["scheduler_default"] = construct_scheduler_config_from_dict(
                 data["scheduler_default"]
             )
 
@@ -63,7 +64,7 @@ class Project:
     def engines(self) -> List[Engine]:
         if self._engines is None:
             self._engines = [
-                create_instance_from_config(c) for c in self._config.engines
+                construct_impl_from_config(c) for c in self._config.engines
             ]
         return self._engines
 

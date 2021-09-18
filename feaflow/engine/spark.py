@@ -1,4 +1,3 @@
-import copy
 from typing import Any, Dict, Optional, Tuple
 
 from pydantic.typing import Literal
@@ -22,7 +21,7 @@ from feaflow.utils import create_random_str, deep_merge_models, split_cols
 
 
 class SparkEngineConfig(EngineConfig):
-    type: Literal["spark"]
+    type: Literal["spark"] = "spark"
     _template_attrs: Tuple[str] = ("master", "job_name_prefix")
 
     master: str = "local"
@@ -32,10 +31,6 @@ class SparkEngineConfig(EngineConfig):
 
 
 class SparkEngine(Engine):
-    @classmethod
-    def create_config(cls, **data):
-        return SparkEngineConfig(impl_cls=cls, **data)
-
     def __init__(self, config: SparkEngineConfig):
         assert isinstance(config, SparkEngineConfig)
         super().__init__(config)

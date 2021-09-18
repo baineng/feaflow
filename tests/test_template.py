@@ -1,8 +1,5 @@
-import re
-
-from feaflow.compute.sql import SqlCompute, SqlComputeConfig
+from feaflow.compute.sql import SqlComputeConfig
 from feaflow.source.pandas import (
-    PandasDataFrameSource,
     PandasDataFrameSourceConfig,
     PandasDataFrameSourceFileConfig,
 )
@@ -11,8 +8,6 @@ from feaflow.utils import render_template
 
 def test_normal_config():
     sql_config = SqlComputeConfig(
-        impl_cls=SqlCompute,
-        type="sql",
         sql="""
         SELECT {% for f in fields %}{{ f }}_suffix{% if not loop.last %}, {% endif %}{% endfor %} \
         {% for t_idx in table_amount %}\
@@ -36,8 +31,6 @@ def test_normal_config():
 
 def test_nested_config():
     pandas_config = PandasDataFrameSourceConfig(
-        impl_cls=PandasDataFrameSource,
-        type="pandas",
         file=PandasDataFrameSourceFileConfig(
             type="json",
             path="{{ dir }}/file.ext",

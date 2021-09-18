@@ -1,22 +1,17 @@
 import collections
 import importlib
 import random
+import re
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from jinja2 import Environment, Template
+from jinja2 import Environment
 from jinja2.sandbox import SandboxedEnvironment
 from pytz import utc
 
 from feaflow import exceptions
-from feaflow.abstracts import (
-    ComputeUnit,
-    FeaflowConfig,
-    FeaflowConfigurableComponent,
-    FeaflowModel,
-    SchedulerConfig,
-)
+from feaflow.abstracts import ComputeUnit, FeaflowConfig, FeaflowModel, SchedulerConfig
 
 
 def get_class_from_name(class_name: str):
@@ -33,24 +28,27 @@ def get_class_from_name(class_name: str):
         raise exceptions.ClassImportError(class_name)
 
 
-def create_config_from_dict(
+def construct_config_from_dict(
     config_dict: Dict[str, Any], builtin_types: Dict[str, str],
 ) -> FeaflowConfig:
     assert "type" in config_dict
-    type_or_class = str(config_dict["type"]).strip().lower()
-    the_class_name = (
-        builtin_types[type_or_class]
-        if type_or_class in builtin_types
-        else type_or_class
+    impl_type = str(config_dict["type"]).strip().lower()
+
+    # get impl class class from type of the dict and builtin_types
+    impl_class_name = (
+        builtin_types[impl_type] if impl_type in builtin_types else impl_type
     )
-    the_class = get_class_from_name(the_class_name)
-    assert issubclass(the_class, FeaflowConfigurableComponent)
-    the_config = the_class.create_config(**config_dict)
-    assert isinstance(the_config, FeaflowConfig)
-    return the_config
+
+    # construct the config object
+    impl_config_class_name = f"{impl_class_name}Config"
+    impl_config_class = get_class_from_name(impl_config_class_name)
+    assert issubclass(impl_config_class, FeaflowConfig)
+    return impl_config_class(**config_dict)
 
 
-def create_scheduler_config_from_dict(config_dict: Dict[str, Any]) -> SchedulerConfig:
+def construct_scheduler_config_from_dict(
+    config_dict: Dict[str, Any]
+) -> SchedulerConfig:
     if (
         "type" not in config_dict
         or str(config_dict["type"]).strip().lower() == "airflow"
@@ -64,8 +62,10 @@ def create_scheduler_config_from_dict(config_dict: Dict[str, Any]) -> SchedulerC
     return config_class(**config_dict)
 
 
-def create_instance_from_config(config: FeaflowConfig) -> ComputeUnit:
-    return config.impl_cls(config=config)
+def construct_impl_from_config(config: FeaflowConfig) -> ComputeUnit:
+    impl_class_name = re.sub(r"Config$", "", config.__class__.__qualname__)
+    impl_class = get_class_from_name(f"{config.__module__}.{impl_class_name}")
+    return impl_class(config=config)
 
 
 def split_cols(cols: str) -> List[str]:

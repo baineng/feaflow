@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Tuple, Type
+from abc import ABC
+from typing import Any, Dict, Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -21,11 +21,6 @@ class FeaflowImmutableModel(FeaflowModel):
 
 
 class FeaflowConfigurableComponent(ABC):
-    @classmethod
-    @abstractmethod
-    def create_config(cls, **data) -> FeaflowConfig:
-        raise NotImplementedError
-
     def __init__(self, config: FeaflowConfig):
         self._config = config
 
@@ -56,9 +51,6 @@ class FeaflowConfigurableComponent(ABC):
 
 class FeaflowConfig(FeaflowImmutableModel, ABC):
 
-    # the impl_cls must have one constructor argument named "config"
-    impl_cls: Type[FeaflowConfigurableComponent]
-
     # the type of the impl of this config, should be a `Literal`
     type: str
 
@@ -80,15 +72,15 @@ class Sink(ComputeUnit, ABC):
 
 
 class SourceConfig(FeaflowConfig, ABC):
-    impl_cls: Type[Source]
+    pass
 
 
 class ComputeConfig(FeaflowConfig, ABC):
-    impl_cls: Type[Compute]
+    pass
 
 
 class SinkConfig(FeaflowConfig, ABC):
-    impl_cls: Type[Sink]
+    pass
 
 
 class SchedulerConfig(FeaflowImmutableModel, ABC):

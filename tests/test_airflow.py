@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 from airflow import DAG
-from airflow.models import DagBag, TaskInstance
+from airflow.models import DagBag
 from pytz import utc
 
 from feaflow import airflow

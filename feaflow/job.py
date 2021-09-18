@@ -19,9 +19,9 @@ from feaflow.abstracts import (
 from feaflow.constants import BUILTIN_COMPUTES, BUILTIN_SINKS, BUILTIN_SOURCES
 from feaflow.exceptions import ConfigLoadError
 from feaflow.utils import (
-    create_config_from_dict,
-    create_instance_from_config,
-    create_scheduler_config_from_dict,
+    construct_config_from_dict,
+    construct_impl_from_config,
+    construct_scheduler_config_from_dict,
     deep_merge_models,
 )
 
@@ -47,24 +47,25 @@ class JobConfig(FeaflowModel):
 
         if "scheduler" in data:
             assert type(data["scheduler"]) == dict
-            data["scheduler"] = create_scheduler_config_from_dict(data["scheduler"])
+            data["scheduler"] = construct_scheduler_config_from_dict(data["scheduler"])
 
         if "sources" in data:
             assert type(data["sources"]) == list
             data["sources"] = [
-                create_config_from_dict(c, BUILTIN_SOURCES) for c in data["sources"]
+                construct_config_from_dict(c, BUILTIN_SOURCES) for c in data["sources"]
             ]
 
         if "computes" in data:
             assert type(data["computes"]) == list
             data["computes"] = [
-                create_config_from_dict(c, BUILTIN_COMPUTES) for c in data["computes"]
+                construct_config_from_dict(c, BUILTIN_COMPUTES)
+                for c in data["computes"]
             ]
 
         if "sinks" in data:
             assert type(data["sinks"]) == list
             data["sinks"] = [
-                create_config_from_dict(c, BUILTIN_SINKS) for c in data["sinks"]
+                construct_config_from_dict(c, BUILTIN_SINKS) for c in data["sinks"]
             ]
 
         super().__init__(**data)
@@ -96,7 +97,7 @@ class Job:
                 self._sources = []
             else:
                 self._sources = (
-                    [create_instance_from_config(c) for c in self._config.sources]
+                    [construct_impl_from_config(c) for c in self._config.sources]
                     if self._config.sources
                     else []
                 )
@@ -106,7 +107,7 @@ class Job:
     def computes(self) -> List[Compute]:
         if self._computes is None:
             self._computes = (
-                [create_instance_from_config(c) for c in self._config.computes]
+                [construct_impl_from_config(c) for c in self._config.computes]
                 if self._config.computes
                 else []
             )
@@ -119,7 +120,7 @@ class Job:
                 self._sinks = None
             else:
                 self._sinks = (
-                    [create_instance_from_config(c) for c in self._config.sinks]
+                    [construct_impl_from_config(c) for c in self._config.sinks]
                     if self._config.sinks
                     else []
                 )
