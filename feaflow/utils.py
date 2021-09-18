@@ -105,8 +105,8 @@ def deep_merge_dicts(_dict: Dict, merge_dict: Dict):
             _dict[k] = merge_dict[k]
 
 
-def make_tzaware(t: datetime) -> datetime:
-    if t.utcoffset() is None:
-        return t.replace(tzinfo=utc)
+def make_tzaware(dt: datetime) -> datetime:
+    if dt.utcoffset() is None:
+        return dt.replace(tzinfo=utc)
     else:
-        return t
+        return dt

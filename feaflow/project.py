@@ -22,7 +22,7 @@ from feaflow.utils import (
 
 class ProjectConfig(FeaflowModel):
     name: constr(regex=r"^[^_][\w ]+$", strip_whitespace=True, strict=True)
-    root_path: DirectoryPath
+    root_dir: DirectoryPath
     config_file_path: FilePath
     engines: List[EngineConfig]
     scheduler_default: Optional[SchedulerConfig] = None
@@ -44,8 +44,8 @@ class ProjectConfig(FeaflowModel):
 
 
 class Project:
-    def __init__(self, path: Union[str, Path]):
-        self._config = create_project_config_from_path(path)
+    def __init__(self, project_dir: Union[str, Path]):
+        self._config = create_project_config_from_dir(project_dir)
         self._engines = None
 
     @property
@@ -57,8 +57,8 @@ class Project:
         return self.config.name
 
     @property
-    def root_path(self) -> Path:
-        return self.config.root_path
+    def root_dir(self) -> Path:
+        return self.config.root_dir
 
     @property
     def engines(self) -> List[Engine]:
@@ -125,7 +125,7 @@ class Project:
 
         context = {
             "project_name": self.name,
-            "project_root": self.root_path.resolve(),
+            "project_root": self.root_dir.resolve(),
             "job_root": job.config.config_file_path.parent.resolve(),
             "job_name": job.name,
             "engine_name": job.engine_name,
@@ -152,23 +152,23 @@ class Project:
 
         return [
             f.resolve()
-            for f in self.root_path.glob("**/*")
+            for f in self.root_dir.glob("**/*")
             if f.is_file() and _match_any_pattern(f)
         ]
 
 
-def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
-    root_path = Path(path)
-    if not root_path.exists():
-        raise FileNotFoundError(f"The project path `{path}` does not exist.")
+def create_project_config_from_dir(project_dir: Union[str, Path]) -> ProjectConfig:
+    root_dir = Path(project_dir)
+    if not root_dir.exists():
+        raise FileNotFoundError(f"The project path `{project_dir}` does not exist.")
 
-    if root_path.joinpath("feaflow_project.yaml").exists():
-        config_file_path = root_path.joinpath("feaflow_project.yaml")
-    elif root_path.joinpath("feaflow_project.yaml").exists():
-        config_file_path = root_path.joinpath("feaflow_project.yaml")
+    if root_dir.joinpath("feaflow_project.yaml").exists():
+        config_file_path = root_dir.joinpath("feaflow_project.yaml")
+    elif root_dir.joinpath("feaflow_project.yaml").exists():
+        config_file_path = root_dir.joinpath("feaflow_project.yaml")
     else:
         raise FileNotFoundError(
-            f"The project path `{path}` does not include feaflow_project.yaml."
+            f"The project path `{project_dir}` does not include feaflow_project.yaml."
         )
 
     try:
@@ -178,7 +178,7 @@ def create_project_config_from_path(path: Union[str, Path]) -> ProjectConfig:
             del config["project_name"]
             return ProjectConfig(
                 name=project_name,
-                root_path=root_path,
+                root_dir=root_dir,
                 config_file_path=config_file_path,
                 **config,
             )

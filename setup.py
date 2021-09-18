@@ -53,4 +53,5 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
+    entry_points={"console_scripts": ["feaflow = feaflow.cli:cli"]},
 )

@@ -45,12 +45,12 @@ def test_create_dag(job1_dag):
 
 
 def test_dag_import(example_project):
-    dag_bag = DagBag(dag_folder=example_project.root_path, include_examples=False)
+    dag_bag = DagBag(dag_folder=example_project.root_dir, include_examples=False)
     assert len(dag_bag.import_errors) == 0, "No Import Failures"
 
 
 def test_dag_from_dag_bag(example_project):
-    dag_bag = DagBag(dag_folder=example_project.root_path, include_examples=False)
+    dag_bag = DagBag(dag_folder=example_project.root_dir, include_examples=False)
     assert len(dag_bag.dags) == 2
     job1_dag: DAG = dag_bag.dags["test_job1"]
     test_create_dag(job1_dag)

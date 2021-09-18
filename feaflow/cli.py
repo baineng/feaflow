@@ -21,35 +21,46 @@ def cli(ctx: click.Context, project: str):
     Welcome use Feaflow (https://github.com/thenetcircle/feaflow)
     """
     ctx.ensure_object(dict)
-    ctx.obj["PROJECT_ROOT"] = (
-        Path.cwd() if project is None else Path(project).absolute()
-    )
+    ctx.obj["PROJECT_DIR"] = Path.cwd() if project is None else Path(project).absolute()
     pass
 
 
 @cli.command()
 def version():
     """
-    Display current Feaflow version
+    Show current version
     """
-    print(f'Feaflow Version: "{pkg_resources.get_distribution("feaflow")}"')
+    print(pkg_resources.get_distribution("feaflow"))
 
 
 @cli.command("run")
 @click.argument("job_name", type=click.STRING)
-@click.argument("execution_date")
+@click.argument(
+    "execution_date",
+    type=click.DateTime(
+        [
+            "%Y-%m-%d",
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y%m%d",
+            "%Y%m%d%H%M%S",
+        ]
+    ),
+    metavar="EXECUTION_DATE",
+)
 @click.pass_context
-def entity_describe(ctx: click.Context, job_name: str, execution_date: str):
+def entity_describe(ctx: click.Context, job_name: str, execution_date: datetime):
     """
     Run a job from the project
     """
-    project_root = ctx.obj["PROJECT_ROOT"]
-    execution_date = make_tzaware(datetime.fromisoformat(execution_date))
+    project_dir = ctx.obj["PROJECT_DIR"]
 
-    project = Project(project_root)
+    print(execution_date)
+
+    project = Project(project_dir)
     job = project.get_job(job_name)
     if not job:
-        raise JobNotFoundError(project_root, job_name)
+        raise JobNotFoundError(project_dir, job_name)
     project.run_job(job, execution_date)
 
 

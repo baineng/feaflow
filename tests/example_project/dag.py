@@ -4,8 +4,8 @@ from feaflow import airflow
 from feaflow.project import Project
 
 # Initialize Project
-project_root_path = Path(__file__).parent
-project = Project(project_root_path)
+project_root = Path(__file__).parent
+project = Project(project_root)
 
 # Create dags from the project
 dags = airflow.create_dags_from_project(project)
