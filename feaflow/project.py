@@ -69,7 +69,7 @@ class Project:
 
     def get_engine_by_name(self, engine_name) -> Optional[Engine]:
         for engine in self.engines:
-            if engine.config.name == engine_name:
+            if engine.get_config("name") == engine_name:
                 return engine
         return None
 

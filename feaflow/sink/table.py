@@ -1,10 +1,9 @@
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import Literal
 
 from feaflow.abstracts import Sink, SinkConfig
-from feaflow.utils import render_template
 
 
 class TableSinkMode(str, Enum):
@@ -20,7 +19,9 @@ class TableSinkFormat(str, Enum):
 
 
 class TableSinkConfig(SinkConfig):
+    _template_attrs: Tuple[str] = ("name", "cols", "partition_cols")
     type: Literal["table"]
+
     name: str
     cols: Optional[str] = None
     mode: TableSinkMode = TableSinkMode.APPEND
@@ -30,7 +31,7 @@ class TableSinkConfig(SinkConfig):
 
 class TableSink(Sink):
     @classmethod
-    def create_config(cls, **data):
+    def create_config(cls, **data) -> TableSinkConfig:
         return TableSinkConfig(impl_cls=cls, **data)
 
     def __init__(self, config: TableSinkConfig):
@@ -38,13 +39,9 @@ class TableSink(Sink):
         super().__init__(config)
 
     def get_name(self, template_context: Optional[Dict[str, Any]] = None) -> str:
-        return render_template(self._config.name, template_context)
+        return self.get_config("name", template_context)
 
     def get_cols(
         self, template_context: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        return (
-            render_template(self._config.cols, template_context)
-            if self._config.cols is not None
-            else None
-        )
+        return self.get_config("cols", template_context)

@@ -1,20 +1,21 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import Literal
 
 from feaflow.abstracts import Source, SourceConfig
-from feaflow.utils import render_template
 
 
 class QuerySourceConfig(SourceConfig):
+    _template_attrs: Tuple[str] = ("sql", "alias")
     type: Literal["query"]
+
     sql: str
     alias: Optional[str] = None
 
 
 class QuerySource(Source):
     @classmethod
-    def create_config(cls, **data):
+    def create_config(cls, **data) -> QuerySourceConfig:
         return QuerySourceConfig(impl_cls=cls, **data)
 
     def __init__(self, config: QuerySourceConfig):
@@ -24,11 +25,7 @@ class QuerySource(Source):
     def get_alias(
         self, template_context: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        return (
-            render_template(self._config.alias, template_context)
-            if self._config.alias is not None
-            else None
-        )
+        return self.get_config("alias", template_context)
 
     def get_sql(self, template_context: Optional[Dict[str, Any]] = None) -> str:
-        return render_template(self._config.sql, template_context)
+        return self.get_config("sql", template_context)

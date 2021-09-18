@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Type
+from typing import Any, Dict, Optional, Tuple, Type
 
 from pydantic import BaseModel
 
-# === System Level Abstracts Start ===
-
 
 class FeaflowModel(BaseModel):
+    # the fields which are going to do template rendering
+    _template_attrs: Tuple[str] = ()
+
     class Config:
         arbitrary_types_allowed = True
         underscore_attrs_are_private = True
@@ -20,34 +23,44 @@ class FeaflowImmutableModel(FeaflowModel):
 class FeaflowConfigurableComponent(ABC):
     @classmethod
     @abstractmethod
-    def create_config(cls, **data):
-        """ :rtype: `feaflow.abstracts.FeaflowConfig` """
+    def create_config(cls, **data) -> FeaflowConfig:
         raise NotImplementedError
 
-    def __init__(self, config):
-        """ :type config: `feaflow.abstracts.FeaflowConfig` """
+    def __init__(self, config: FeaflowConfig):
         self._config = config
 
     @property
-    def config(self):
-        """ :rtype: `feaflow.abstracts.FeaflowConfig` """
-        return self._config
-
-    @property
     def type(self):
-        """ :rtype: str """
         return self._config.type
+
+    def get_config(
+        self,
+        name: Optional[str] = None,
+        template_context: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        if name is None:
+            from feaflow.utils import render_template
+
+            return render_template(self._config, template_context)
+        elif name in self._config._template_attrs:
+            from feaflow.utils import render_template
+
+            return (
+                render_template(self._config.__getattribute__(name), template_context)
+                if self._config.__getattribute__(name) is not None
+                else None
+            )
+        else:
+            return self._config.__getattribute__(name)
 
 
 class FeaflowConfig(FeaflowImmutableModel, ABC):
+
+    # the impl_cls must have one constructor argument named "config"
     impl_cls: Type[FeaflowConfigurableComponent]
+
+    # the type of the impl of this config, should be a `Literal`
     type: str
-
-
-# === System Level Abstracts End ===
-
-
-# === ComputeUnit Abstracts Start ===
 
 
 class ComputeUnit(FeaflowConfigurableComponent, ABC):
@@ -78,13 +91,5 @@ class SinkConfig(FeaflowConfig, ABC):
     impl_cls: Type[Sink]
 
 
-# === ComputeUnit Abstracts End ===
-
-# === Scheduler Abstracts Start ===
-
-
 class SchedulerConfig(FeaflowImmutableModel, ABC):
     pass
-
-
-# === Scheduler Abstracts End ===

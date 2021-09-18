@@ -52,32 +52,34 @@ class EngineSession(ABC):
     def set_handlers(self, handlers: List[Type[ComputeUnitHandler]]):
         self._handlers = handlers
 
-    def handle(self, context: EngineRunContext, job):
+    def handle(self, run_context: EngineRunContext, job):
         """
-        :type context: `EngineRunContext`
+        :type run_context: `EngineRunContext`
         :type job: `feaflow.job.Job`
         """
         # Handle Sources, then Computes, then Sinks
         for source in job.sources:
-            self._handle_one_unit(context, source)
+            self._handle_one_unit(run_context, source)
         for compute in job.computes:
-            self._handle_one_unit(context, compute)
+            self._handle_one_unit(run_context, compute)
         for sink in job.sinks:
-            self._handle_one_unit(context, sink)
+            self._handle_one_unit(run_context, sink)
 
-    def _handle_one_unit(self, context: EngineRunContext, unit: ComputeUnit):
+    def _handle_one_unit(self, run_context: EngineRunContext, unit: ComputeUnit):
         _handled = False
 
         try:
             for handler in self._handlers:
                 if not _handled and handler.can_handle(unit):
-                    handler.handle(context, unit)
+                    handler.handle(run_context, unit)
                     _handled = True
         except Exception as ex:
-            raise EngineHandleError(str(ex), context, type(unit).__name__)
+            raise EngineHandleError(str(ex), run_context, type(unit).__name__)
 
         if not _handled:
-            raise EngineHandleError(f"Not handler found", context, type(unit).__name__)
+            raise EngineHandleError(
+                f"Not handler found", run_context, type(unit).__name__
+            )
 
     @abstractmethod
     def __enter__(self):

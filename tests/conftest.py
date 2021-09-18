@@ -31,7 +31,7 @@ def example_project_path():
 @pytest.fixture
 def example_project(example_project_path, tmpdir):
     project = Project(example_project_path)
-    project.get_engine_by_name("default_spark").config.config.update(
+    project.get_engine_by_name("default_spark").get_config("config").update(
         {"spark.sql.warehouse.dir": f"file://{tmpdir}"}
     )
     return project

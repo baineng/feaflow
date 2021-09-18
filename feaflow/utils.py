@@ -77,12 +77,43 @@ def create_random_str(short: bool = False) -> str:
 
 def render_template(
     template_source: Any, template_context: Optional[Dict[str, Any]] = None
-) -> str:
+) -> [FeaflowModel, str]:
     from jinja2 import Template
 
     if template_context is None:
         template_context = {}
-    return Template(template_source).render(template_context)
+
+    if isinstance(template_source, FeaflowModel):
+        if len(template_source._template_attrs) == 0:
+            return template_source
+        else:
+            new_model = template_source.copy()
+            old_allow_mutation = new_model.__config__.allow_mutation
+            new_model.__config__.allow_mutation = True
+            for tpl_attr in new_model._template_attrs:
+                if new_model.__getattribute__(tpl_attr) is not None:
+                    new_model.__setattr__(
+                        tpl_attr,
+                        render_template(
+                            new_model.__getattribute__(tpl_attr), template_context
+                        ),
+                    )
+            new_model.__config__.allow_mutation = old_allow_mutation
+            return new_model
+
+    elif isinstance(template_source, dict):
+        return {
+            k: render_template(v, template_context) for k, v in template_source.items()
+        }
+
+    elif isinstance(template_source, list):
+        return [render_template(v, template_context) for v in template_source]
+
+    elif isinstance(template_source, str):
+        return Template(template_source).render(template_context)
+
+    else:
+        return template_source
 
 
 def deep_merge_models(model: FeaflowModel, merge_model: FeaflowModel) -> FeaflowModel:

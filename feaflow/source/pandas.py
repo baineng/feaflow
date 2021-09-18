@@ -1,13 +1,12 @@
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import pandas as pd
 from pydantic import Field
 from typing_extensions import Literal
 
 from feaflow.abstracts import FeaflowImmutableModel, Source, SourceConfig
-from feaflow.utils import render_template
 
 
 class PandasDataFrameSourceSupportedFileTypes(str, Enum):
@@ -19,13 +18,17 @@ class PandasDataFrameSourceSupportedFileTypes(str, Enum):
 
 
 class PandasDataFrameSourceFileConfig(FeaflowImmutableModel):
+    _template_attrs: Tuple[str] = ("path", "args")
+
     type: PandasDataFrameSourceSupportedFileTypes
     path: Union[str, Path]
     args: Dict[str, Any] = {}
 
 
 class PandasDataFrameSourceConfig(SourceConfig):
+    _template_attrs: Tuple[str] = ("file",)
     type: Literal["pandas"]
+
     dict_: Optional[Dict[str, Any]] = Field(alias="dict", default=None)
     file: Optional[PandasDataFrameSourceFileConfig] = None
 
@@ -36,7 +39,7 @@ class PandasDataFrameSourceConfig(SourceConfig):
 
 class PandasDataFrameSource(Source):
     @classmethod
-    def create_config(cls, **data):
+    def create_config(cls, **data) -> PandasDataFrameSourceConfig:
         return PandasDataFrameSourceConfig(impl_cls=cls, **data)
 
     def __init__(self, config: PandasDataFrameSourceConfig):
@@ -46,7 +49,9 @@ class PandasDataFrameSource(Source):
     def get_dataframe(
         self, template_context: Optional[Dict[str, Any]] = None
     ) -> pd.DataFrame:
-        config: PandasDataFrameSourceConfig = self.config
+        config: PandasDataFrameSourceConfig = self.get_config(
+            template_context=template_context
+        )
         if config.dict_ is not None:
             return pd.DataFrame(config.dict_)
         elif config.file is not None:
@@ -61,6 +66,4 @@ class PandasDataFrameSource(Source):
                 _mapping[PandasDataFrameSourceSupportedFileTypes.ORC] = pd.read_orc
             except AttributeError:
                 pass
-
-            file_path = render_template(config.file.path, template_context)
-            return _mapping[config.file.type](file_path, **config.file.args)
+            return _mapping[config.file.type](config.file.path, **config.file.args)
