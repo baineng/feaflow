@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
-from pytz import utc
 
 from feaflow.abstracts import FeaflowModel, SchedulerConfig
 from feaflow.constants import BUILTIN_ENGINES

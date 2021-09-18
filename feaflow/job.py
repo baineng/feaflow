@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 import yaml.parser
-from pydantic import DirectoryPath, FilePath, constr
+from pydantic import FilePath, constr
 
 from feaflow.abstracts import (
     Compute,
