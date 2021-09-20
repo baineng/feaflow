@@ -14,7 +14,6 @@ from feaflow.job import Job, JobConfig, parse_job_config_file
 from feaflow.utils import (
     construct_config_from_dict,
     construct_impl_from_config,
-    construct_scheduler_config_from_dict,
     make_tzaware,
 )
 
@@ -25,22 +24,6 @@ class ProjectConfig(FeaflowModel):
     config_file_path: FilePath
     engines: List[Dict[str, Any]]
     scheduler_default: Optional[Dict[str, Any]] = None
-
-    def __init__(self, **data: Any):
-        if "engines" in data:
-            assert type(data["engines"]) == list
-            data["engines"] = [
-                construct_config_from_dict(ec, BUILTIN_ENGINES)
-                for ec in data["engines"]
-            ]
-
-        if "scheduler_default" in data and data["scheduler_default"]:
-            assert type(data["scheduler_default"]) == dict
-            data["scheduler_default"] = construct_scheduler_config_from_dict(
-                data["scheduler_default"]
-            )
-
-        super().__init__(**data)
 
 
 class Project:
