@@ -2,7 +2,6 @@ import pytest
 
 from feaflow.compute.sql import SqlComputeConfig
 from feaflow.exceptions import ConfigLoadError
-from feaflow.job import Job
 from feaflow.project import Project
 from feaflow.sink.table import TableSinkConfig
 from feaflow.source.query import QuerySourceConfig

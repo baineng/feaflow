@@ -5,7 +5,7 @@ from feaflow.compute.sql import SqlCompute
 from feaflow.job import Job
 from feaflow.sink.table import TableSink
 from feaflow.source.query import QuerySource
-from feaflow.utils import merge_scheduler_config
+from feaflow.utils import deep_merge_models
 
 
 def test_construct_job(example_project):
@@ -37,26 +37,24 @@ def test_scheduler_config(job1):
         ),
     )
     assert (
-        merge_scheduler_config(job1.scheduler_config, default_config).schedule_interval
+        deep_merge_models(job1.scheduler_config, default_config).schedule_interval
         == "0 6 * * *"
     )
     assert (
-        merge_scheduler_config(job1.scheduler_config, default_config).full_filepath
+        deep_merge_models(job1.scheduler_config, default_config).full_filepath
         == "/tmp/"
     )
     assert (
-        merge_scheduler_config(job1.scheduler_config, default_config).default_args.queue
+        deep_merge_models(job1.scheduler_config, default_config).default_args.queue
         == "abc"
     )
-    assert merge_scheduler_config(
+    assert deep_merge_models(
         job1.scheduler_config, default_config
     ).default_args.max_retry_delay == timedelta(seconds=100)
     assert (
-        merge_scheduler_config(
-            job1.scheduler_config, default_config
-        ).default_args.retries
+        deep_merge_models(job1.scheduler_config, default_config).default_args.retries
         == 2
     )
-    assert merge_scheduler_config(
+    assert deep_merge_models(
         job1.scheduler_config, default_config
     ).default_args.retry_delay == timedelta(seconds=10)

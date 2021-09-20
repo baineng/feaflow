@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 import shutil
-import tempfile
 from pathlib import Path
 from sys import platform
 

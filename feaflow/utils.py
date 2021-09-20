@@ -169,12 +169,3 @@ def make_tzaware(dt: datetime) -> datetime:
         return dt.replace(tzinfo=utc)
     else:
         return dt
-
-
-def merge_scheduler_config(
-    scheduler_config: SchedulerConfig, default_config: Optional[SchedulerConfig] = None
-) -> SchedulerConfig:
-    if not default_config or type(default_config) != type(scheduler_config):
-        return scheduler_config
-    else:
-        return deep_merge_models(scheduler_config, default_config)

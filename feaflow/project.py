@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 import yaml
 from pydantic import DirectoryPath, FilePath, constr
 
-from feaflow.abstracts import FeaflowModel, SchedulerConfig
+from feaflow.abstracts import FeaflowModel
 from feaflow.constants import BUILTIN_ENGINES
 from feaflow.engine import Engine, EngineConfig
 from feaflow.exceptions import ConfigLoadError
@@ -23,8 +23,8 @@ class ProjectConfig(FeaflowModel):
     name: constr(regex=r"^[^_][\w ]+$", strip_whitespace=True, strict=True)
     root_dir: DirectoryPath
     config_file_path: FilePath
-    engines: List[EngineConfig]
-    scheduler_default: Optional[SchedulerConfig] = None
+    engines: List[Dict[str, Any]]
+    scheduler_default: Optional[Dict[str, Any]] = None
 
     def __init__(self, **data: Any):
         if "engines" in data:
@@ -46,6 +46,7 @@ class ProjectConfig(FeaflowModel):
 class Project:
     def __init__(self, project_dir: Union[str, Path]):
         self._config = create_project_config_from_dir(project_dir)
+        self._engine_configs = None
         self._engines = None
 
     @property
@@ -61,17 +62,18 @@ class Project:
         return self.config.root_dir
 
     @property
-    def engines(self) -> List[Engine]:
-        if self._engines is None:
-            self._engines = [
-                construct_impl_from_config(c) for c in self._config.engines
+    def engine_configs(self) -> List[EngineConfig]:
+        if self._engine_configs is None:
+            self._engine_configs = [
+                construct_config_from_dict(ec, BUILTIN_ENGINES)
+                for ec in self._config.engines
             ]
-        return self._engines
+        return self._engine_configs
 
     def get_engine_by_name(self, engine_name) -> Optional[Engine]:
-        for engine in self.engines:
-            if engine.get_config("name") == engine_name:
-                return engine
+        for engine_cfg in self.engine_configs:
+            if engine_cfg.name == engine_name:
+                return construct_engine(engine_cfg)
         return None
 
     def scan_jobs(self) -> List[JobConfig]:
@@ -184,3 +186,7 @@ def create_project_config_from_dir(project_dir: Union[str, Path]) -> ProjectConf
             )
     except Exception:
         raise ConfigLoadError(str(config_file_path.absolute()))
+
+
+def construct_engine(engine_cfg: EngineConfig) -> Engine:
+    return construct_impl_from_config(engine_cfg)

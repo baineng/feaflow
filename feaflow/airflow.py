@@ -12,7 +12,7 @@ from docker.types import Mount
 from feaflow.abstracts import FeaflowImmutableModel, SchedulerConfig
 from feaflow.job import Job, JobConfig
 from feaflow.project import Project
-from feaflow.utils import merge_scheduler_config
+from feaflow.utils import construct_scheduler_config_from_dict, deep_merge_models
 
 
 class DockerOperatorConfig(FeaflowImmutableModel):
@@ -139,10 +139,18 @@ DEFAULT_TASK_ID = "run_job"
 
 
 def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
-    scheduler_config = merge_scheduler_config(
-        job_config.scheduler, project.config.scheduler_default
-    )
+    scheduler_config = job_config.scheduler
     assert isinstance(scheduler_config, AirflowSchedulerConfig)
+
+    project_default_scheduler_config = project.config.scheduler_default
+    if project_default_scheduler_config is not None:
+        _default_scheduler_config = construct_scheduler_config_from_dict(
+            project_default_scheduler_config
+        )
+        if type(_default_scheduler_config) == type(scheduler_config):
+            scheduler_config = deep_merge_models(
+                scheduler_config, _default_scheduler_config
+            )
 
     dag_args = scheduler_config.dict(
         exclude={"dag_id", "task_id", "docker", "default_args"}
