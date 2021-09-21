@@ -6,6 +6,8 @@ import pytest
 from pandas._testing import assert_frame_equal
 from pyspark.sql import SparkSession
 
+from feaflow.utils import construct_template_context
+
 
 def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
     events_dataset = pd.DataFrame(
@@ -36,10 +38,11 @@ def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
 def test_run_job1(spark_run_context, example_project, job1):
     expected = prepare_dataset(spark_run_context.spark_session)
 
-    template_context = example_project.construct_template_context(
-        job1, datetime.utcnow()
+    execution_date = datetime.utcnow()
+    template_context = construct_template_context(
+        example_project, job1.config, execution_date
     )
-    spark_run_context.engine_session.run(job1, template_context)
+    spark_run_context.engine_session.run(job1, execution_date, template_context)
 
     sink_df = spark_run_context.spark_session.table("test_sink_table")
     real = sink_df.toPandas()
@@ -52,10 +55,11 @@ def test_run_job1(spark_run_context, example_project, job1):
 
 @pytest.mark.integration
 def test_run_job2(spark_run_context, example_project, job2, job2_expect_result):
-    template_context = example_project.construct_template_context(
-        job2, datetime.utcnow()
+    execution_date = datetime.utcnow()
+    template_context = construct_template_context(
+        example_project, job2.config, execution_date
     )
-    spark_run_context.engine_session.run(job2, template_context)
+    spark_run_context.engine_session.run(job2, execution_date, template_context)
 
     sink_df = spark_run_context.spark_session.table("test_sink_table")
     real = sink_df.toPandas()

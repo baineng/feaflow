@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Type
 
 from pydantic import constr
@@ -22,6 +23,7 @@ class Engine(FeaflowConfigurableComponent, ABC):
 class EngineRunContext(FeaflowModel, ABC):
     template_context: Dict[str, Any] = {}
     engine: Engine
+    execution_date: datetime
 
 
 class ComputeUnitHandler(ABC):
@@ -39,9 +41,15 @@ class EngineSession(ABC):
     _handlers: List[Type[ComputeUnitHandler]] = None
 
     @abstractmethod
-    def run(self, job, upstream_template_context: Optional[Dict[str, Any]] = None):
+    def run(
+        self,
+        job,
+        execution_date: datetime,
+        upstream_template_context: Optional[Dict[str, Any]] = None,
+    ):
         """
         :type job: `feaflow.job.Job`
+        :type execution_date: `datetime.datetime`
         :type upstream_template_context: Optional[Dict[str, Any]]
         """
         raise NotImplementedError

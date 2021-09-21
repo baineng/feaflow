@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 import shutil
+from datetime import datetime
 from pathlib import Path
 from sys import platform
 
@@ -47,7 +48,10 @@ def spark_run_context(example_project, tmpdir) -> SparkEngineRunContext:
             f"test_spark_job_{create_random_str()}"
         )
         yield SparkEngineRunContext(
-            engine=engine, engine_session=engine_session, spark_session=spark_session
+            engine=engine,
+            engine_session=engine_session,
+            spark_session=spark_session,
+            execution_date=datetime.utcnow(),
         )
 
 

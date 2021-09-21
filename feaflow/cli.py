@@ -6,6 +6,7 @@ import pkg_resources
 
 from feaflow.exceptions import JobNotFoundError
 from feaflow.project import Project
+from feaflow.utils import construct_template_context
 
 
 @click.group()
@@ -48,7 +49,7 @@ def version():
     metavar="EXECUTION_DATE",
 )
 @click.pass_context
-def entity_describe(ctx: click.Context, job_name: str, execution_date: datetime):
+def run_job(ctx: click.Context, job_name: str, execution_date: datetime):
     """
     Run a job from the project
     """
@@ -57,7 +58,8 @@ def entity_describe(ctx: click.Context, job_name: str, execution_date: datetime)
     job = project.get_job(job_name)
     if not job:
         raise JobNotFoundError(project_dir, job_name)
-    project.run_job(job, execution_date)
+    template_context = construct_template_context(project, job.config, execution_date)
+    project.run_job(job, execution_date, template_context)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,8 @@ import importlib
 import random
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from jinja2 import Environment
@@ -169,3 +170,62 @@ def make_tzaware(dt: datetime) -> datetime:
         return dt.replace(tzinfo=utc)
     else:
         return dt
+
+
+def construct_template_context(
+    project: "feaflow.project.Project",
+    job_config: "feaflow.job.JobConfig",
+    execution_date: Optional[datetime] = None,
+    upstream_template_context: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    context = {
+        "project_name": project.name,
+        "project_root": project.root_dir.resolve(),
+        "job_root": job_config.config_file_path.parent.resolve(),
+        "job_name": job_config.name,
+        "engine_name": job_config.engine.use,
+    }
+
+    if execution_date:
+        ds = execution_date.strftime("%Y-%m-%d")
+        ts = execution_date.isoformat()
+        yesterday_ds = (execution_date - timedelta(1)).strftime("%Y-%m-%d")
+        tomorrow_ds = (execution_date + timedelta(1)).strftime("%Y-%m-%d")
+        ds_nodash = ds.replace("-", "")
+        ts_nodash = execution_date.strftime("%Y%m%dT%H%M%S")
+        ts_nodash_with_tz = ts.replace("-", "").replace(":", "")
+        yesterday_ds_nodash = yesterday_ds.replace("-", "")
+        tomorrow_ds_nodash = tomorrow_ds.replace("-", "")
+        context.update(
+            {
+                "execution_date": execution_date,
+                "ds": ds,
+                "ts": ts,
+                "yesterday_ds": yesterday_ds,
+                "tomorrow_ds": tomorrow_ds,
+                "ds_nodash": ds_nodash,
+                "ts_nodash": ts_nodash,
+                "ts_nodash_with_tz": ts_nodash_with_tz,
+                "yesterday_ds_nodash": yesterday_ds_nodash,
+                "tomorrow_ds_nodash": tomorrow_ds_nodash,
+            }
+        )
+
+    if upstream_template_context:
+        context.update(upstream_template_context)
+
+    return context
+
+
+def find_files_by_patterns(root_dir, *patterns) -> List:
+    def _match_any_pattern(f: Path) -> bool:
+        for pat in patterns:
+            if re.search(pat, str(f.resolve())):
+                return True
+        return False
+
+    return [
+        f.resolve()
+        for f in root_dir.glob("**/*")
+        if f.is_file() and _match_any_pattern(f)
+    ]

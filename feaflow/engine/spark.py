@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from pydantic.typing import Literal
@@ -56,7 +57,12 @@ class SparkEngineSession(EngineSession):
     def engine(self) -> SparkEngine:
         return self._engine
 
-    def run(self, job: Job, upstream_template_context: Optional[Dict[str, Any]] = None):
+    def run(
+        self,
+        job: Job,
+        execution_date: datetime,
+        upstream_template_context: Optional[Dict[str, Any]] = None,
+    ):
         template_context = upstream_template_context or {}
         engine_name = self._engine.get_config("name", template_context)
         assert (
@@ -68,6 +74,7 @@ class SparkEngineSession(EngineSession):
         )
         run_context = SparkEngineRunContext(
             engine=self._engine,
+            execution_date=execution_date,
             engine_session=self,
             spark_session=spark_session,
             template_context=template_context,
