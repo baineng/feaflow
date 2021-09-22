@@ -53,7 +53,7 @@ def construct_scheduler_config_from_dict(
         "type" not in config_dict
         or str(config_dict["type"]).strip().lower() == "airflow"
     ):
-        from feaflow.airflow import AirflowSchedulerConfig
+        from feaflow.airflow_config import AirflowSchedulerConfig
 
         config_class = AirflowSchedulerConfig
     else:

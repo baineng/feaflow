@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from feaflow.airflow import AirflowSchedulerConfig, OperatorDefaultArgs
+from feaflow.airflow_config import AirflowSchedulerConfig, OperatorDefaultArgs
 from feaflow.compute.sql import SqlCompute
 from feaflow.job import Job
 from feaflow.sink.table import TableSink
