@@ -5,7 +5,13 @@ from setuptools import find_packages, setup
 with open("README.md", "r", encoding="utf-8") as f:
     readme = f.read()
 
-INSTALL_REQUIRES = ["Click==7.*", "pydantic>=1.0.0", "PyYAML>=5.4.*", "Jinja2>=2.0.0"]
+INSTALL_REQUIRES = [
+    "Click==7.*",
+    "pydantic>=1.0.0",
+    "PyYAML>=5.4.*",
+    "Jinja2>=2.0.0",
+    "pandas>=1.0.0",
+]
 
 AIRFLOW_REQUIRES = ["apache-airflow>=2.0.0", "apache-airflow-providers-docker>=2.0.0"]
 
