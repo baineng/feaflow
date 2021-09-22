@@ -41,6 +41,7 @@ def version():
         [
             "%Y-%m-%d",
             "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M:%S%z",
             "%Y-%m-%d %H:%M:%S",
             "%Y%m%d",
             "%Y%m%d%H%M%S",
