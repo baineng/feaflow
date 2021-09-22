@@ -3,13 +3,12 @@ import importlib
 import random
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from jinja2 import Environment
 from jinja2.sandbox import SandboxedEnvironment
-from pytz import utc
 
 from feaflow import exceptions
 from feaflow.abstracts import ComputeUnit, FeaflowConfig, FeaflowModel, SchedulerConfig
@@ -194,7 +193,7 @@ def deep_merge_dicts(_dict: Dict, merge_dict: Dict):
 
 def make_tzaware(dt: datetime) -> datetime:
     if dt.utcoffset() is None:
-        return dt.replace(tzinfo=utc)
+        return dt.replace(tzinfo=timezone.utc)
     else:
         return dt
 

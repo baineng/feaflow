@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from airflow import DAG
 from airflow.models import DagBag
-from pytz import utc
 
 from feaflow import airflow
 
@@ -28,8 +27,8 @@ def job2_dag(example_project) -> DAG:
 
 def test_create_dag(job1_dag):
     assert job1_dag.schedule_interval == "0 6 * * *"
-    assert job1_dag.start_date == datetime(2021, 9, 10, tzinfo=utc)
-    assert job1_dag.end_date == datetime(2021, 11, 1, tzinfo=utc)
+    assert job1_dag.start_date == datetime(2021, 9, 10, tzinfo=timezone.utc)
+    assert job1_dag.end_date == datetime(2021, 11, 1, tzinfo=timezone.utc)
     assert job1_dag.catchup == False
     assert job1_dag.dagrun_timeout == timedelta(seconds=300)
     assert job1_dag.default_args["depends_on_past"] == True
