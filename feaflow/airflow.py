@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from airflow import DAG
 from airflow.models.baseoperator import TaskStateChangeCallback
@@ -21,6 +21,21 @@ from feaflow.utils import (
 
 
 class DockerOperatorConfig(FeaflowImmutableModel):
+    _template_attrs: Tuple[str] = (
+        "image",
+        "command",
+        "container_name",
+        "docker_url",
+        "environment",
+        "private_environment",
+        "host_tmp_dir",
+        "tmp_dir",
+        "mounts",
+        "entrypoint",
+        "docker_conn_id",
+        "extra_hosts",
+    )
+
     image: str
     api_version: Optional[str] = None
     command: Optional[Union[str, List[str]]] = None
@@ -99,6 +114,18 @@ class OperatorDefaultArgs(FeaflowImmutableModel):
 
 
 class AirflowSchedulerConfig(SchedulerConfig):
+    _template_attrs: Tuple[str] = (
+        "dag_id",
+        "description",
+        "schedule_interval",
+        "full_filepath",
+        "template_searchpath",
+        "doc_md",
+        "tags",
+        "task_id",
+        "docker",
+    )
+
     dag_id: Optional[str] = None
     description: Optional[str] = None
     schedule_interval: Optional[Union[str, timedelta, relativedelta]] = None
