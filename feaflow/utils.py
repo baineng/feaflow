@@ -5,7 +5,7 @@ import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from jinja2 import Environment
 from jinja2.sandbox import SandboxedEnvironment
@@ -81,19 +81,40 @@ def create_random_str(short: bool = False) -> str:
 _jinja2_env: Optional[Environment] = None
 
 
-def render_template(
-    template_source: Any, template_context: Optional[Dict[str, Any]] = None
-) -> [FeaflowModel, str]:
+def render_template_method_jinja2(
+    template_source: str, template_context: Dict[str, Any]
+) -> str:
     global _jinja2_env
-
     if _jinja2_env is None:
         _jinja2_env = SandboxedEnvironment(cache_size=0)
+    return _jinja2_env.from_string(template_source).render(**template_context)
 
+
+def render_template_method_replace(
+    template_source: str, template_context: Dict[str, Any]
+) -> str:
+    for k, v in template_context.items():
+        template_source = re.sub(
+            r"\{\{ *?" + re.escape(k) + " *?\}\}", str(v), template_source
+        )
+    return template_source
+
+
+def render_template(
+    template_source: Any,
+    template_context: Optional[Dict[str, Any]] = None,
+    use_jinja2: bool = True,
+) -> [FeaflowModel, str]:
     if template_context is None:
         template_context = {}
 
     if isinstance(template_source, str):
-        return _jinja2_env.from_string(template_source).render(**template_context)
+        render_method = (
+            render_template_method_jinja2
+            if use_jinja2
+            else render_template_method_replace
+        )
+        return render_method(template_source, template_context)
 
     elif isinstance(template_source, FeaflowModel):
         if len(template_source._template_attrs) == 0:
@@ -107,7 +128,9 @@ def render_template(
                     new_model.__setattr__(
                         tpl_attr,
                         render_template(
-                            new_model.__getattribute__(tpl_attr), template_context
+                            new_model.__getattribute__(tpl_attr),
+                            template_context,
+                            use_jinja2,
                         ),
                     )
             new_model.__config__.allow_mutation = old_allow_mutation
@@ -118,27 +141,31 @@ def render_template(
             # Special case for named tuples
             return template_source.__class__(
                 *(
-                    render_template(element, template_context)
+                    render_template(element, template_context, use_jinja2)
                     for element in template_source
                 )
             )
         else:
             return tuple(
-                render_template(element, template_context)
+                render_template(element, template_context, use_jinja2)
                 for element in template_source
             )
 
     elif isinstance(template_source, dict):
         return {
-            k: render_template(v, template_context) for k, v in template_source.items()
+            k: render_template(v, template_context, use_jinja2)
+            for k, v in template_source.items()
         }
 
     elif isinstance(template_source, list):
-        return [render_template(v, template_context) for v in template_source]
+        return [
+            render_template(v, template_context, use_jinja2) for v in template_source
+        ]
 
     elif isinstance(template_source, set):
         return {
-            render_template(element, template_context) for element in template_source
+            render_template(element, template_context, use_jinja2)
+            for element in template_source
         }
 
     else:

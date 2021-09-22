@@ -46,3 +46,36 @@ def test_nested_config():
     assert isinstance(result, PandasDataFrameSourceConfig)
     assert result.file.path == "/var/log/file.ext"
     assert result.file.args == {"compression": "gzip", "numpy": False}
+
+
+def test_without_jinja2():
+    template = "{{s1}}, {{  s2 }}, {{ s3 }} {% if s1 %}r3{% endif %}"
+    context = {
+        "s1": "r1",
+        "s2": "r2",
+    }
+
+    result_without_jinja2 = render_template(template, context, False)
+    assert result_without_jinja2 == "r1, r2, {{ s3 }} {% if s1 %}r3{% endif %}"
+
+    result_with_jinja2 = render_template(template, context)
+    assert result_with_jinja2 == "r1, r2,  r3"
+
+
+def test_config_without_jinja2():
+    pandas_config = PandasDataFrameSourceConfig(
+        file=PandasDataFrameSourceFileConfig(
+            type="json",
+            path="{{ dir }}/file.ext",
+            args={"compression": "{{ comp }} {{ unknown }}", "numpy": False},
+        ),
+    )
+    template_context = {
+        "dir": "/var/log",
+        "comp": "gzip",
+    }
+
+    result = render_template(pandas_config, template_context, False)
+    assert isinstance(result, PandasDataFrameSourceConfig)
+    assert result.file.path == "/var/log/file.ext"
+    assert result.file.args == {"compression": "gzip {{ unknown }}", "numpy": False}

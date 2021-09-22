@@ -184,7 +184,9 @@ def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
                 scheduler_config, _default_scheduler_config
             )
     scheduler_config = render_template(
-        scheduler_config, construct_template_context(project, job_config)
+        scheduler_config,
+        template_context=construct_template_context(project, job_config),
+        use_jinja2=False,
     )
 
     # construct the dag
