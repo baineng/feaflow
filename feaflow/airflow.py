@@ -15,6 +15,8 @@ from feaflow.utils import (
     render_template,
 )
 
+DEFAULT_TASK_ID = "run_job"
+
 
 def create_dags_from_project(project: Project) -> List[DAG]:
     jobs = project.scan_jobs()
@@ -25,9 +27,6 @@ def create_dags_from_project(project: Project) -> List[DAG]:
             continue
         dags.append(create_dag_from_job(project, job_config))
     return dags
-
-
-DEFAULT_TASK_ID = "run_job"
 
 
 def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
