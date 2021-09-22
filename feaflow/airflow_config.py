@@ -1,9 +1,21 @@
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from docker.types import Mount
-
 from feaflow.abstracts import FeaflowImmutableModel, SchedulerConfig
+
+
+class DockerMountConfig(FeaflowImmutableModel):
+    target: str
+    source: str
+    type: Optional[str] = None
+    read_only: Optional[bool] = None
+    consistency: Optional[str] = None
+    propagation: Optional[str] = None
+    no_copy: Optional[bool] = None
+    labels: Optional[Dict[str, Any]] = None
+    driver_config: Optional[Dict[str, Any]] = None
+    tmpfs_size: Optional[Union[int, str]] = None
+    tmpfs_mode: Optional[int] = None
 
 
 class DockerOperatorConfig(FeaflowImmutableModel):
@@ -42,7 +54,7 @@ class DockerOperatorConfig(FeaflowImmutableModel):
     mount_tmp_dir: Optional[bool] = None
     tmp_dir: Optional[str] = None
     user: Optional[Union[str, int]] = None
-    mounts: Optional[List[Mount]] = None
+    mounts: Optional[List[DockerMountConfig]] = None
     entrypoint: Optional[Union[str, List[str]]] = None
     working_dir: Optional[str] = None
     xcom_all: Optional[bool] = None
