@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from dateutil.relativedelta import relativedelta
 from docker.types import Mount
 
 from feaflow.abstracts import FeaflowImmutableModel, SchedulerConfig
@@ -111,7 +110,7 @@ class AirflowSchedulerConfig(SchedulerConfig):
 
     dag_id: Optional[str] = None
     description: Optional[str] = None
-    schedule_interval: Optional[Union[str, timedelta, relativedelta]] = None
+    schedule_interval: Optional[Union[str, timedelta]] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     full_filepath: Optional[str] = None
