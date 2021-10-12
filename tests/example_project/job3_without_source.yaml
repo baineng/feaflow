@@ -1,0 +1,19 @@
+name: test_job3
+engine: default_spark
+
+scheduler:
+  schedule_interval: '0 6 * * *'
+  start_date: 2021-09-10 00:00
+
+computes:
+  - type: sql
+    sql: |-
+      SELECT *
+      FROM test_sink_table
+
+sinks:
+  - type: table
+    name: test_sink_table2
+    mode: overwrite
+    cols: title, amount
+    format: orc

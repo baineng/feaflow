@@ -67,6 +67,12 @@ def job2(example_project):
     return Job(next(filter(lambda j: j.name == "test_job2", jobs)))
 
 
+@pytest.fixture
+def job3(example_project):
+    jobs = example_project.scan_jobs()
+    return Job(next(filter(lambda j: j.name == "test_job3", jobs)))
+
+
 @pytest.fixture()
 def job2_expect_result():
     return pd.DataFrame(

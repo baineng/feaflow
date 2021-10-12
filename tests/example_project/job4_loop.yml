@@ -1,0 +1,35 @@
+loop:
+  - name: l1
+    schedule_interval: '0 6 * * *'
+  - name: l2
+    schedule_interval: '1 7 * * *'
+  - name: l3
+    schedule_interval: '2 8 * * *'
+
+name: test_job4_{{ name }}
+engine: default_spark
+
+scheduler:
+  schedule_interval: "{{ schedule_interval }}"
+  start_date: 2021-09-10 00:00
+
+sources:
+  - type: pandas
+    file:
+      type: csv
+      path: "{{ project_root }}/../data/pandas_df1.csv"
+      args:
+        index_col: 0
+
+computes:
+  - type: sql
+    sql: |-
+      SELECT *
+      FROM {{ source_0 }}
+
+sinks:
+  - type: table
+    name: sink_table_{{ name }}
+    mode: overwrite
+    cols: title, amount
+    format: orc

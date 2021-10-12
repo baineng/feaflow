@@ -65,9 +65,11 @@ class Project:
         any yaml files start or end with "job" will be considered as a job config file.
         """
         job_conf_files = find_files_by_patterns(
-            self.root_dir, r"\/job.*\.ya?ml$", r"\/.*?job\.ya?ml$"
+            self.root_dir, r"\/jobs?.*\.ya?ml$", r"\/.*?jobs?\.ya?ml$"
         )
-        job_configs = [parse_job_config_file(f) for f in job_conf_files]
+        job_configs = []
+        for f in job_conf_files:
+            job_configs += parse_job_config_file(f)
         return job_configs
 
     def get_job(self, job_name: str) -> Optional[Job]:

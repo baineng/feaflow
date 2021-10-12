@@ -1,5 +1,7 @@
+import copy
+import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
 import yaml.parser
@@ -22,22 +24,26 @@ from feaflow.utils import (
     construct_config_from_dict,
     construct_impl_from_config,
     construct_scheduler_config_from_dict,
+    render_template,
 )
 
 
 class JobEngineConfig(FeaflowImmutableModel):
+    _template_attrs: Tuple[str] = ("use", "config_overlay")
     use: str
     config_overlay: Optional[Dict[str, Any]] = None
 
 
 class JobConfig(FeaflowModel):
-    name: constr(regex=r"^[^_]\w+$", strip_whitespace=True, strict=True)
+    _template_attrs: Tuple[str] = ("name", "engine", "scheduler")
+    name: str
     config_file_path: FilePath
     engine: JobEngineConfig
     scheduler: SchedulerConfig
     computes: List[ComputeConfig]
     sources: Optional[List[SourceConfig]] = None
     sinks: Optional[List[SinkConfig]] = None
+    loop_params: Optional[Dict[str, Any]] = None
 
     def __init__(self, **data: Any):
         if "engine" in data:
@@ -133,7 +139,7 @@ class Job:
         return f"Job({self._config.name})"
 
 
-def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
+def parse_job_config_file(path: Union[str, Path]) -> List[JobConfig]:
     job_conf_path = Path(path)
     if not job_conf_path.exists():
         raise FileNotFoundError(f"The job path `{path}` does not exist.")
@@ -141,7 +147,24 @@ def parse_job_config_file(path: Union[str, Path]) -> JobConfig:
     try:
         with open(job_conf_path) as f:
             config = yaml.safe_load(f)
-            return JobConfig(config_file_path=job_conf_path, **config)
+            if "loop" in config:
+                assert type(config["loop"]) == list
+                result = []
+                for loop_params in config["loop"]:
+                    _config = copy.deepcopy(config)
+                    del _config["loop"]
+                    _config["loop_params"] = loop_params
+                    job_config = JobConfig(config_file_path=job_conf_path, **_config)
+                    job_config = render_template(
+                        job_config, loop_params, use_jinja2=False
+                    )
+                    assert re.match(
+                        r"^[^_]\w+$", job_config.name
+                    ), f"Job name needs match regexp '^[^_]\w+$'"
+                    result.append(job_config)
+                return result
+            else:
+                return [JobConfig(config_file_path=job_conf_path, **config)]
     except yaml.parser.ParserError:
         raise ConfigLoadError(
             str(job_conf_path.absolute()),
