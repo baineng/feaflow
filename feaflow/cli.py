@@ -1,3 +1,5 @@
+import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -9,20 +11,40 @@ from feaflow.project import Project
 from feaflow.utils import construct_template_context
 
 
+def setup_logging(verbose: int):
+    root = logging.getLogger()
+    handler = logging.StreamHandler(stream=sys.stdout)
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s {{%(filename)s:%(lineno)d}} %(message)s"
+    )
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
+    if verbose == 0:
+        root.setLevel(logging.WARNING)
+    elif verbose == 1:
+        root.setLevel(logging.INFO)
+    else:
+        root.setLevel(logging.DEBUG)
+
+    return handler.stream
+
+
 @click.group()
 @click.option(
     "--project",
     "-p",
     help="Choose a target project directory for the subcommand (default is current directory).",
 )
+@click.option("-v", "--verbose", count=True)
 @click.pass_context
-def cli(ctx: click.Context, project: str):
+def cli(ctx: click.Context, project: str, verbose: int):
     """
     Welcome use Feaflow (https://github.com/thenetcircle/feaflow)
     """
     ctx.ensure_object(dict)
     ctx.obj["PROJECT_DIR"] = Path.cwd() if project is None else Path(project).absolute()
-    pass
+    setup_logging(verbose)
 
 
 @cli.command()

@@ -153,9 +153,28 @@ class SparkEngineSession(EngineSession):
                 builder = builder.config(k, v)
             if engine_config.enable_hive_support:
                 builder = builder.enableHiveSupport()
-            return builder.getOrCreate()
+            spark = builder.getOrCreate()
+            self._set_spark_loglevel(spark)
+            return spark
         except Exception:
             raise EngineInitError(engine_config.type)
+
+    def _set_spark_loglevel(self, spark: SparkSession):
+        curr_root_loglevel = logging.root.level
+        if curr_root_loglevel == logging.NOTSET:
+            return
+        loglevel_mapping = {
+            logging.CRITICAL: "FATAL",
+            logging.ERROR: "ERROR",
+            logging.WARNING: "WARN",
+            logging.INFO: "INFO",
+            logging.DEBUG: "DEBUG",
+        }
+        if curr_root_loglevel not in loglevel_mapping:
+            return
+        new_loglevel = loglevel_mapping[curr_root_loglevel]
+        spark.sparkContext.setLogLevel(new_loglevel)
+        logger.info("Adjust Spark logging level to '%s'", new_loglevel)
 
     def __enter__(self):
         return self
