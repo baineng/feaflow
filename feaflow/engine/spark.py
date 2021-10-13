@@ -314,6 +314,10 @@ class TableSinkHandler(ComputeUnitHandler):
                     sink.get_config("format").value
                 )
             )
+            partition_by = sink.get_config("partition_by", exec_env.template_context)
+            if partition_by:
+                writer = writer.partitionBy(partition_by)
+
             sink_table_name = sink.get_name(exec_env.template_context)
             writer.saveAsTable(sink_table_name)
 

@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import Field
 from typing_extensions import Literal
@@ -23,14 +23,14 @@ class TableSinkFormat(str, Enum):
 
 
 class TableSinkConfig(SinkConfig):
-    _template_attrs: Tuple[str] = ("name", "cols", "partition_cols")
+    _template_attrs: Tuple[str] = ("name", "from_", "partition_by")
     type: Literal["table"] = "table"
 
     name: str
     from_: Optional[str] = Field(alias="from", default=None)
     mode: TableSinkMode = TableSinkMode.APPEND
     format: TableSinkFormat = TableSinkFormat.PARQUET
-    partition_cols: Optional[str] = None
+    partition_by: Optional[List[str]] = None
 
 
 class TableSink(Sink):

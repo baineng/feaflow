@@ -43,3 +43,5 @@ sinks:
     name: test_sink_table
     mode: append
     format: orc
+    partition_by:
+      - title
