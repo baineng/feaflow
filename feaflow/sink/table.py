@@ -1,9 +1,12 @@
+import logging
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import Literal
 
 from feaflow.abstracts import Sink, SinkConfig
+
+logger = logging.getLogger(__name__)
 
 
 class TableSinkMode(str, Enum):
@@ -31,6 +34,8 @@ class TableSinkConfig(SinkConfig):
 
 class TableSink(Sink):
     def __init__(self, config: TableSinkConfig):
+        logger.info("Constructing TableSink")
+        logger.debug("With config %s", config)
         assert isinstance(config, TableSinkConfig)
         super().__init__(config)
 

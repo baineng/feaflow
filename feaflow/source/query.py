@@ -1,8 +1,11 @@
+import logging
 from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import Literal
 
 from feaflow.abstracts import Source, SourceConfig
+
+logger = logging.getLogger(__name__)
 
 
 class QuerySourceConfig(SourceConfig):
@@ -15,6 +18,8 @@ class QuerySourceConfig(SourceConfig):
 
 class QuerySource(Source):
     def __init__(self, config: QuerySourceConfig):
+        logger.info("Constructing QuerySource")
+        logger.debug("With config %s", config)
         assert isinstance(config, QuerySourceConfig)
         super().__init__(config)
 

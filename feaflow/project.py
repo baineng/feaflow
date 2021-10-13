@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -16,6 +17,8 @@ from feaflow.utils import (
     find_files_by_patterns,
     make_tzaware,
 )
+
+logger = logging.Logger(__name__)
 
 
 class ProjectConfig(FeaflowModel):
@@ -64,12 +67,14 @@ class Project:
         Scan jobs in the project root path,
         any yaml files start or end with "job" will be considered as a job config file.
         """
+        logger.info("Scanning jobs")
         job_conf_files = find_files_by_patterns(
             self.root_dir, r"\/jobs?.*\.ya?ml$", r"\/.*?jobs?\.ya?ml$"
         )
         job_configs = []
         for f in job_conf_files:
             job_configs += parse_job_config_file(f)
+        logger.debug("Scanned jobs: %s", job_configs)
         return job_configs
 
     def get_job(self, job_name: str) -> Optional[Job]:
@@ -85,8 +90,19 @@ class Project:
         execution_date: datetime,
         template_context: Optional[Dict[str, Any]] = None,
     ):
+        if template_context and job.config.loop_params:
+            template_context.update(job.config.loop_params)
+
         # for execution_date with no timezone, just replace to utc
         execution_date = make_tzaware(execution_date)
+
+        logger.info(
+            "Running job '%s' at '%s', with execution_date: '%s', template_context: %s",
+            job.name,
+            job.engine_name,
+            execution_date,
+            template_context.keys(),
+        )
 
         engine = self.get_engine_by_name(job.engine_name)
         with engine.new_session() as engine_session:
@@ -94,22 +110,26 @@ class Project:
 
 
 def create_project_config_from_dir(project_dir: Union[str, Path]) -> ProjectConfig:
+    logger.info("Creating project from '%s'", project_dir)
     root_dir = Path(project_dir)
     if not root_dir.exists():
         raise FileNotFoundError(f"The project path `{project_dir}` does not exist.")
 
     if root_dir.joinpath("feaflow_project.yaml").exists():
         config_file_path = root_dir.joinpath("feaflow_project.yaml")
+        logger.info("Detected config file '%s'", config_file_path)
     elif root_dir.joinpath("feaflow_project.yaml").exists():
         config_file_path = root_dir.joinpath("feaflow_project.yaml")
+        logger.info("Detected config file '%s'", config_file_path)
     else:
         raise FileNotFoundError(
-            f"The project path `{project_dir}` does not include feaflow_project.yaml."
+            f"The project path '{project_dir}' does not include feaflow_project.yaml."
         )
 
     try:
         with open(config_file_path) as f:
             config = yaml.safe_load(f)
+            logger.debug("Parsed config: %s", config)
             project_name = config["project_name"]
             del config["project_name"]
             return ProjectConfig(
@@ -123,4 +143,5 @@ def create_project_config_from_dir(project_dir: Union[str, Path]) -> ProjectConf
 
 
 def construct_engine(engine_cfg: EngineConfig) -> Engine:
+    logger.info("Constructing Engine from config: %s", engine_cfg)
     return construct_impl_from_config(engine_cfg)

@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
@@ -7,6 +8,8 @@ from pydantic import Field
 from typing_extensions import Literal
 
 from feaflow.abstracts import FeaflowImmutableModel, Source, SourceConfig
+
+logger = logging.getLogger(__name__)
 
 
 class PandasDataFrameSourceSupportedFileTypes(str, Enum):
@@ -39,6 +42,8 @@ class PandasDataFrameSourceConfig(SourceConfig):
 
 class PandasDataFrameSource(Source):
     def __init__(self, config: PandasDataFrameSourceConfig):
+        logger.info("Constructing PandasDataFrameSource")
+        logger.debug("With config %s", config)
         assert isinstance(config, PandasDataFrameSourceConfig)
         super().__init__(config)
 
@@ -49,8 +54,14 @@ class PandasDataFrameSource(Source):
             template_context=template_context
         )
         if config.dict_ is not None:
+            logger.info("Constructing a Pandas DataFrame from a Dict")
             return pd.DataFrame(config.dict_)
         elif config.file is not None:
+            logger.info(
+                "Constructing a Pandas DataFrame from a file type: '%s', path: '%s'",
+                config.file.type,
+                config.file.path,
+            )
             _mapping = {
                 PandasDataFrameSourceSupportedFileTypes.PICKLE: pd.read_pickle,
                 PandasDataFrameSourceSupportedFileTypes.CSV: pd.read_csv,

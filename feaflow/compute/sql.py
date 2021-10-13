@@ -1,8 +1,11 @@
+import logging
 from typing import Any, Dict, Optional, Tuple
 
 from typing_extensions import Literal
 
 from feaflow.abstracts import Compute, ComputeConfig
+
+logger = logging.getLogger(__name__)
 
 
 class SqlComputeConfig(ComputeConfig):
@@ -14,6 +17,8 @@ class SqlComputeConfig(ComputeConfig):
 
 class SqlCompute(Compute):
     def __init__(self, config: SqlComputeConfig):
+        logger.info("Constructing SqlCompute")
+        logger.debug("With config %s", config)
         assert isinstance(config, SqlComputeConfig)
         super().__init__(config)
 

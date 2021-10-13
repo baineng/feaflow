@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
@@ -20,6 +21,8 @@ from feaflow.source.pandas import PandasDataFrameSource
 from feaflow.source.query import QuerySource
 from feaflow.utils import create_random_str, deep_merge_models, split_cols
 
+logger = logging.getLogger(__name__)
+
 
 class SparkEngineConfig(EngineConfig):
     type: Literal["spark"] = "spark"
@@ -33,6 +36,7 @@ class SparkEngineConfig(EngineConfig):
 
 class SparkEngine(Engine):
     def __init__(self, config: SparkEngineConfig):
+        logger.info("Constructing new SparkEngine with config: %s", config)
         assert isinstance(config, SparkEngineConfig)
         super().__init__(config)
 
@@ -42,16 +46,19 @@ class SparkEngine(Engine):
 
 class SparkEngineSession(EngineSession):
     def __init__(self, engine: SparkEngine):
+        logger.info(
+            "Constructing a new session for SparkEngine '%s'", engine.get_config("name")
+        )
         self._engine = engine
         self._spark_session: Optional[SparkSession] = None
-        self.set_handlers(
-            [
-                QuerySourceHandler,
-                PandasDataFrameSourceHandler,
-                SqlComputeHandler,
-                TableSinkHandler,
-            ]
-        )
+        handlers = [
+            QuerySourceHandler,
+            PandasDataFrameSourceHandler,
+            SqlComputeHandler,
+            TableSinkHandler,
+        ]
+        logger.info("Setting handlers for the session: %s", handlers)
+        self.set_handlers(handlers)
 
     @property
     def engine(self) -> SparkEngine:
@@ -65,6 +72,8 @@ class SparkEngineSession(EngineSession):
     ):
         template_context = upstream_template_context or {}
         engine_name = self._engine.get_config("name", template_context)
+        logger.info("Running job '%s' on SparkEngine '%s'", job.name, engine_name)
+
         assert (
             job.engine_name == engine_name
         ), f"The job '{job}' is not able to be run on engine '{engine_name}'."
@@ -89,6 +98,9 @@ class SparkEngineSession(EngineSession):
         self, job_name: str, config_overlay: Optional[Dict[str, Any]] = None
     ) -> SparkSession:
         if self._spark_session is None:
+            logger.info(
+                "Creating a new SparkSession with config overlay: %s", config_overlay,
+            )
             self._spark_session = self._create_spark_session(job_name, config_overlay)
         return self._spark_session
 
@@ -102,6 +114,8 @@ class SparkEngineSession(EngineSession):
             engine_config = deep_merge_models(
                 engine_config, SparkEngineConfig(type="spark", **config_overlay)
             )
+
+        logger.debug("Creating SparkSession with config %s", engine_config)
 
         try:
             builder = SparkSession.builder.master(engine_config.master).appName(
@@ -136,10 +150,17 @@ class SparkEngineRunContext(EngineRunContext):
 class QuerySourceHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
-        return isinstance(unit, QuerySource)
+        result = isinstance(unit, QuerySource)
+        logger.debug(
+            "Check if QuerySourceHandler could handle the unit '%s', result is %s",
+            unit,
+            result,
+        )
+        return result
 
     @classmethod
     def handle(cls, run_context: EngineRunContext, unit: ComputeUnit):
+        logger.info("QuerySourceHandler is handling unit '%s'", unit)
         assert isinstance(run_context, SparkEngineRunContext)
         assert isinstance(unit, QuerySource)
 
@@ -158,10 +179,17 @@ class QuerySourceHandler(ComputeUnitHandler):
 class PandasDataFrameSourceHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
-        return isinstance(unit, PandasDataFrameSource)
+        result = isinstance(unit, PandasDataFrameSource)
+        logger.debug(
+            "Check if PandasDataFrameSourceHandler could handle the unit '%s', result is %s",
+            unit,
+            result,
+        )
+        return result
 
     @classmethod
     def handle(cls, run_context: EngineRunContext, unit: ComputeUnit):
+        logger.info("PandasDataFrameSourceHandler is handling unit '%s'", unit)
         assert isinstance(run_context, SparkEngineRunContext)
         assert isinstance(unit, PandasDataFrameSource)
 
@@ -178,10 +206,17 @@ class PandasDataFrameSourceHandler(ComputeUnitHandler):
 class SqlComputeHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
-        return isinstance(unit, SqlCompute)
+        result = isinstance(unit, SqlCompute)
+        logger.debug(
+            "Check if SqlComputeHandler could handle the unit '%s', result is %s",
+            unit,
+            result,
+        )
+        return result
 
     @classmethod
     def handle(cls, run_context: EngineRunContext, unit: ComputeUnit):
+        logger.info("SqlComputeHandler is handling unit '%s'", unit)
         assert isinstance(run_context, SparkEngineRunContext)
         assert isinstance(unit, SqlCompute)
 
@@ -207,10 +242,17 @@ class SqlComputeHandler(ComputeUnitHandler):
 class TableSinkHandler(ComputeUnitHandler):
     @classmethod
     def can_handle(cls, unit: ComputeUnit) -> bool:
-        return isinstance(unit, TableSink)
+        result = isinstance(unit, TableSink)
+        logger.debug(
+            "Check if TableSinkHandler could handle the unit '%s', result is %s",
+            unit,
+            result,
+        )
+        return result
 
     @classmethod
     def handle(cls, run_context: EngineRunContext, unit: ComputeUnit):
+        logger.info("TableSinkHandler is handling unit '%s'", unit)
         assert isinstance(run_context, SparkEngineRunContext)
         assert isinstance(unit, TableSink)
         assert len(run_context.compute_results) > 0

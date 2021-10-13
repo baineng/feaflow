@@ -1,11 +1,12 @@
 import copy
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
 import yaml.parser
-from pydantic import FilePath, constr
+from pydantic import FilePath
 
 from feaflow.abstracts import (
     Compute,
@@ -26,6 +27,8 @@ from feaflow.utils import (
     construct_scheduler_config_from_dict,
     render_template,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class JobEngineConfig(FeaflowImmutableModel):
@@ -140,17 +143,21 @@ class Job:
 
 
 def parse_job_config_file(path: Union[str, Path]) -> List[JobConfig]:
+    logger.info("Parsing Job config file from path '%s'", path)
     job_conf_path = Path(path)
     if not job_conf_path.exists():
-        raise FileNotFoundError(f"The job path `{path}` does not exist.")
+        raise FileNotFoundError(f"The job path '{path}' does not exist.")
 
     try:
         with open(job_conf_path) as f:
             config = yaml.safe_load(f)
+            logger.debug("Parsed config: %s", config)
             if "loop" in config:
+                logger.debug("Detected loop")
                 assert type(config["loop"]) == list
                 result = []
                 for loop_params in config["loop"]:
+                    logger.debug("Loop params: %s", loop_params)
                     _config = copy.deepcopy(config)
                     del _config["loop"]
                     _config["loop_params"] = loop_params
@@ -158,13 +165,16 @@ def parse_job_config_file(path: Union[str, Path]) -> List[JobConfig]:
                     job_config = render_template(
                         job_config, loop_params, use_jinja2=False
                     )
+                    logger.debug("Parsed job config: %s", job_config)
                     assert re.match(
                         r"^[^_]\w+$", job_config.name
-                    ), f"Job name needs match regexp '^[^_]\w+$'"
+                    ), f"Job name needs match regexp '^[^_]\\w+$'"
                     result.append(job_config)
                 return result
             else:
-                return [JobConfig(config_file_path=job_conf_path, **config)]
+                job_config = JobConfig(config_file_path=job_conf_path, **config)
+                logger.debug("Parsed job config: %s", job_config)
+                return [job_config]
     except yaml.parser.ParserError:
         raise ConfigLoadError(
             str(job_conf_path.absolute()),

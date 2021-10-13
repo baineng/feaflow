@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 
@@ -17,19 +18,31 @@ from feaflow.utils import (
 
 DEFAULT_TASK_ID = "run_job"
 
+logger = logging.getLogger(__name__)
+
 
 def create_dags_from_project(project: Project) -> List[DAG]:
+    logger.info("Creating DAGs from project '%s'", project.name)
     jobs = project.scan_jobs()
+    logger.info("Scanned %s jobs", len(jobs))
     dags = []
     for job_config in jobs:
         if not isinstance(job_config.scheduler, AirflowSchedulerConfig):
             # TODO log the case that jobs rely on other scheduler
+            logger.warning(
+                "Detected a scheduler config is not a instance of AirflowSchedulerConfig"
+            )
             continue
-        dags.append(create_dag_from_job(project, job_config))
+        dag = create_dag_from_job(project, job_config)
+        logger.info("Created a new DAG '%s'", dag.dag_id)
+        dags.append(dag)
     return dags
 
 
 def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
+    logger.info(
+        "Creating a DAG from project '%s' and job '%s'", project.name, job_config.name
+    )
     # get scheduler config
     scheduler_config = job_config.scheduler
     assert isinstance(scheduler_config, AirflowSchedulerConfig)
@@ -47,6 +60,7 @@ def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
         template_context=construct_template_context(project, job_config),
         use_jinja2=False,
     )
+    logger.debug("Scheduler config: %s", scheduler_config)
 
     # construct the dag
     dag_args = scheduler_config.dict(
@@ -62,17 +76,21 @@ def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
         }
     task_id = scheduler_config.task_id or DEFAULT_TASK_ID
 
+    logger.debug("Creating DAG with arguments: %s", dag_args)
     with DAG(**dag_args) as dag:
 
         if scheduler_config.docker:
+            logger.info("Detected docker config, gonna create DockerOperator")
             docker_args = scheduler_config.docker.dict(exclude_none=True)
+            logger.debug("Creating DockerOperator with arguments: %s", docker_args)
             _ = DockerOperator(task_id=task_id, **docker_args)
 
         else:
+            logger.info("Haven't detected docker config, gonna create PythonOperator")
+            python_args = {"project": project, "job_config": job_config}
+            logger.debug("Creating PythonOperator with arguments: %s", python_args)
             _ = PythonOperator(
-                task_id=task_id,
-                python_callable=_python_run_job,
-                op_kwargs={"project": project, "job_config": job_config},
+                task_id=task_id, python_callable=_python_run_job, op_kwargs=python_args,
             )
 
         return dag
@@ -81,6 +99,14 @@ def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
 def _python_run_job(
     project: Project, job_config: JobConfig, execution_date: datetime, **airflow_context
 ):
+    logger.info(
+        "PythonOperator starts, project: '%s', job: '%s', execution_date: '%s', airflow_context: '%s'",
+        project.name,
+        job_config.name,
+        execution_date,
+        airflow_context.keys(),
+    )
+
     template_context = construct_template_context(
         project, job_config, execution_date, airflow_context
     )
