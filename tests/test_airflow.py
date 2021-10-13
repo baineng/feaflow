@@ -56,5 +56,6 @@ def test_dag_from_dag_bag(example_project):
 
 @pytest.mark.integration
 def test_run_dag(job2_dag):
+    # FIXME: it run two times everytime
     task = job2_dag.get_task(airflow.DEFAULT_TASK_ID)
     task.run()

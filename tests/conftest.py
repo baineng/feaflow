@@ -8,7 +8,11 @@ from sys import platform
 import pandas as pd
 import pytest
 
-from feaflow.engine.spark import SparkEngine, SparkEngineRunContext, SparkEngineSession
+from feaflow.engine.spark import (
+    SparkEngine,
+    SparkEngineSession,
+    SparkExecutionEnvironment,
+)
 from feaflow.job import Job
 from feaflow.project import Project
 from feaflow.utils import create_random_str
@@ -39,7 +43,7 @@ def example_project(example_project_path, tmpdir):
 
 
 @pytest.fixture()
-def spark_run_context(example_project, tmpdir) -> SparkEngineRunContext:
+def spark_exec_env(example_project, tmpdir) -> SparkExecutionEnvironment:
     engine = example_project.get_engine_by_name("default_spark")
     assert type(engine) == SparkEngine
     with engine.new_session() as engine_session:
@@ -47,7 +51,7 @@ def spark_run_context(example_project, tmpdir) -> SparkEngineRunContext:
         spark_session = engine_session._get_or_create_spark_session(
             f"test_spark_job_{create_random_str()}"
         )
-        yield SparkEngineRunContext(
+        yield SparkExecutionEnvironment(
             engine=engine,
             engine_session=engine_session,
             spark_session=spark_session,

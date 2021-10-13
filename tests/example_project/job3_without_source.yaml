@@ -15,5 +15,4 @@ sinks:
   - type: table
     name: test_sink_table2
     mode: overwrite
-    cols: title, amount
     format: orc

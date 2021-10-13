@@ -2,6 +2,7 @@ import logging
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
+from pydantic import Field
 from typing_extensions import Literal
 
 from feaflow.abstracts import Sink, SinkConfig
@@ -26,7 +27,7 @@ class TableSinkConfig(SinkConfig):
     type: Literal["table"] = "table"
 
     name: str
-    cols: Optional[str] = None
+    from_: Optional[str] = Field(alias="from", default=None)
     mode: TableSinkMode = TableSinkMode.APPEND
     format: TableSinkFormat = TableSinkFormat.PARQUET
     partition_cols: Optional[str] = None
@@ -42,7 +43,7 @@ class TableSink(Sink):
     def get_name(self, template_context: Optional[Dict[str, Any]] = None) -> str:
         return self.get_config("name", template_context)
 
-    def get_cols(
+    def get_from(
         self, template_context: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        return self.get_config("cols", template_context)
+        return self.get_config("from_", template_context)

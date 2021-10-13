@@ -31,5 +31,4 @@ sinks:
   - type: table
     name: sink_table_{{ name }}
     mode: overwrite
-    cols: title, amount
     format: orc

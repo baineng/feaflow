@@ -35,16 +35,16 @@ def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
 
 
 @pytest.mark.integration
-def test_run_job1(spark_run_context, example_project, job1):
-    expected = prepare_dataset(spark_run_context.spark_session)
+def test_run_job1(spark_exec_env, example_project, job1):
+    expected = prepare_dataset(spark_exec_env.spark_session)
 
     execution_date = datetime.utcnow()
     template_context = construct_template_context(
         example_project, job1.config, execution_date
     )
-    spark_run_context.engine_session.run(job1, execution_date, template_context)
+    spark_exec_env.engine_session.run(job1, execution_date, template_context)
 
-    sink_df = spark_run_context.spark_session.table("test_sink_table")
+    sink_df = spark_exec_env.spark_session.table("test_sink_table")
     real = sink_df.toPandas()
     assert_frame_equal(
         expected.sort_values(by=["title"]).reset_index(drop=True),
@@ -54,14 +54,14 @@ def test_run_job1(spark_run_context, example_project, job1):
 
 
 @pytest.mark.integration
-def test_run_job2(spark_run_context, example_project, job2, job2_expect_result):
+def test_run_job2(spark_exec_env, example_project, job2, job2_expect_result):
     execution_date = datetime.utcnow()
     template_context = construct_template_context(
         example_project, job2.config, execution_date
     )
-    spark_run_context.engine_session.run(job2, execution_date, template_context)
+    spark_exec_env.engine_session.run(job2, execution_date, template_context)
 
-    sink_df = spark_run_context.spark_session.table("test_sink_table")
+    sink_df = spark_exec_env.spark_session.table("test_sink_table")
     real = sink_df.toPandas()
     assert_frame_equal(
         job2_expect_result.sort_values(by=["title"]).reset_index(drop=True),
@@ -71,15 +71,15 @@ def test_run_job2(spark_run_context, example_project, job2, job2_expect_result):
 
 
 @pytest.mark.integration
-def test_run_job3(spark_run_context, example_project, job2, job3, job2_expect_result):
+def test_run_job3(spark_exec_env, example_project, job2, job3, job2_expect_result):
     execution_date = datetime.utcnow()
     template_context = construct_template_context(
         example_project, job2.config, execution_date
     )
-    spark_run_context.engine_session.run(job2, execution_date, template_context)
-    spark_run_context.engine_session.run(job3, execution_date, template_context)
+    spark_exec_env.engine_session.run(job2, execution_date, template_context)
+    spark_exec_env.engine_session.run(job3, execution_date, template_context)
 
-    sink_df = spark_run_context.spark_session.table("test_sink_table2")
+    sink_df = spark_exec_env.spark_session.table("test_sink_table2")
     real = sink_df.toPandas()
     assert_frame_equal(
         job2_expect_result.sort_values(by=["title"]).reset_index(drop=True),
