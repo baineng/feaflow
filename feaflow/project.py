@@ -93,15 +93,12 @@ class Project:
         if template_context and job.config.loop_params:
             template_context.update(job.config.loop_params)
 
-        # for execution_date with no timezone, just replace to utc
-        execution_date = make_tzaware(execution_date)
-
         logger.info(
             "Running job '%s' at '%s', with execution_date: '%s', template_context: %s",
             job.name,
             job.engine_name,
             execution_date,
-            template_context.keys(),
+            template_context.keys() if template_context else None,
         )
 
         engine = self.get_engine_by_name(job.engine_name)

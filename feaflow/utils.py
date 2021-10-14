@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import pendulum
 from jinja2 import Environment
 from jinja2.sandbox import SandboxedEnvironment
 
@@ -224,7 +225,7 @@ def construct_template_context(
         tomorrow_ds_nodash = tomorrow_ds.replace("-", "")
         context.update(
             {
-                "execution_date": execution_date,
+                "execution_date": pendulum.instance(execution_date),
                 "ds": ds,
                 "ts": ts,
                 "yesterday_ds": yesterday_ds,

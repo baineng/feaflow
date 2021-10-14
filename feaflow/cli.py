@@ -8,14 +8,14 @@ import pkg_resources
 
 from feaflow.exceptions import JobNotFoundError
 from feaflow.project import Project
-from feaflow.utils import construct_template_context
+from feaflow.utils import construct_template_context, make_tzaware
 
 
 def setup_logging(verbose: int):
     root = logging.getLogger()
     handler = logging.StreamHandler(stream=sys.stdout)
     formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s {{%(filename)s:%(lineno)d}} %(message)s"
+        "[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s"
     )
     handler.setFormatter(formatter)
     root.addHandler(handler)
@@ -82,6 +82,10 @@ def run_job(ctx: click.Context, job_name: str, execution_date: datetime):
     job = project.get_job(job_name)
     if not job:
         raise JobNotFoundError(project_dir, job_name)
+
+    # for execution_date has no timezone, just replace to utc
+    execution_date = make_tzaware(execution_date)
+
     template_context = construct_template_context(project, job.config, execution_date)
     project.run_job(job, execution_date, template_context)
 

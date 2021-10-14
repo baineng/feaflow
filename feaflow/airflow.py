@@ -96,9 +96,9 @@ def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
         return dag
 
 
-def _python_run_job(
-    project: Project, job_config: JobConfig, execution_date: datetime, **airflow_context
-):
+def _python_run_job(project: Project, job_config: JobConfig, **airflow_context):
+    execution_date = airflow_context["execution_date"]
+
     logger.info(
         "PythonOperator starts, project: '%s', job: '%s', execution_date: '%s', airflow_context: '%s'",
         project.name,
@@ -106,9 +106,8 @@ def _python_run_job(
         execution_date,
         airflow_context.keys(),
     )
-
-    template_context = construct_template_context(
-        project, job_config, execution_date, airflow_context
-    )
     job = Job(job_config)
+    template_context = construct_template_context(
+        project, job_config, None, airflow_context
+    )
     project.run_job(job, execution_date, template_context)

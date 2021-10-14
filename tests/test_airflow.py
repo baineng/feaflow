@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from airflow import DAG
-from airflow.models import DagBag
+from airflow.models import DagBag, TaskInstance
 
 from feaflow import airflow
 
@@ -58,4 +58,9 @@ def test_dag_from_dag_bag(example_project):
 def test_run_dag(job2_dag):
     # FIXME: it run two times everytime
     task = job2_dag.get_task(airflow.DEFAULT_TASK_ID)
-    task.run()
+    TaskInstance(task, execution_date=datetime.now()).run(
+        mark_success=False,
+        ignore_all_deps=True,
+        ignore_depends_on_past=True,
+        ignore_ti_state=True,
+    )
