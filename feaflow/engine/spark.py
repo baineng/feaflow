@@ -146,8 +146,13 @@ class SparkEngineSession(EngineSession):
         logger.debug("Creating SparkSession with config %s", engine_config)
 
         try:
-            builder = SparkSession.builder.master(engine_config.master).appName(
+            app_name = (
                 f"{engine_config.job_name_prefix}_{job_name}"
+                if engine_config.job_name_prefix
+                else job_name
+            )
+            builder = SparkSession.builder.master(engine_config.master).appName(
+                app_name
             )
             for k, v in engine_config.config.items():
                 builder = builder.config(k, v)
@@ -221,7 +226,7 @@ class QuerySourceHandler(ComponentHandler):
             )
             sql = source.get_sql(exec_env.template_context)
 
-            logger.info("Start creating table '%s' by sql: %s", table_id, sql)
+            logger.info("Start creating table '%s' by sql: \n%s", table_id, sql)
             df = spark.sql(sql)
             df.createOrReplaceTempView(table_id)
             logger.info("Created temp view '%s'", table_id)
@@ -289,7 +294,7 @@ class SqlComputeHandler(ComponentHandler):
             table_id = f"compute_{compute.type}_{create_random_str()}"
 
             sql = compute.get_sql(exec_env.template_context)
-            logger.info("Start creating table '%s' by sql: %s", table_id, sql)
+            logger.info("Start creating table '%s' by sql: \n%s", table_id, sql)
             df = spark.sql(sql)
             df.createOrReplaceTempView(table_id)
             logger.info("Created temp view '%s'", table_id)
@@ -338,6 +343,6 @@ class TableSinkHandler(ComponentHandler):
                 writer = writer.partitionBy(partition_by)
 
             sink_table_name = sink.get_name(exec_env.template_context)
-            writer.saveAsTable(sink_table_name)
+            writer.insertInto(sink_table_name)
 
         return SinkTask(execution_func=execution_func)
