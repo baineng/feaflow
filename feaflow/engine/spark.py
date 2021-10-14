@@ -355,6 +355,7 @@ class TableSinkHandler(ComponentHandler):
             if spark._jsparkSession.catalog().tableExists(sink_table_name):
                 logger.info("Inserting into sink table '%s'", sink_table_name)
                 # if sink table exists, just inert into there
+                spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
                 writer.insertInto(sink_table_name)
             else:
                 # otherwise create the sink table
