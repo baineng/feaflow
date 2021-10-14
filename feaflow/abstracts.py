@@ -55,19 +55,19 @@ class FeaflowConfig(FeaflowImmutableModel, ABC):
     type: str
 
 
-class ComputeUnit(FeaflowConfigurableComponent, ABC):
+class Component(FeaflowConfigurableComponent, ABC):
     pass
 
 
-class Source(ComputeUnit, ABC):
+class Source(Component, ABC):
     pass
 
 
-class Compute(ComputeUnit, ABC):
+class Compute(Component, ABC):
     pass
 
 
-class Sink(ComputeUnit, ABC):
+class Sink(Component, ABC):
     pass
 
 

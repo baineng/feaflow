@@ -11,7 +11,7 @@ from jinja2 import Environment
 from jinja2.sandbox import SandboxedEnvironment
 
 from feaflow import exceptions
-from feaflow.abstracts import ComputeUnit, FeaflowConfig, FeaflowModel, SchedulerConfig
+from feaflow.abstracts import Component, FeaflowConfig, FeaflowModel, SchedulerConfig
 
 
 def get_class_from_name(class_name: str):
@@ -62,7 +62,7 @@ def construct_scheduler_config_from_dict(
     return config_class(**config_dict)
 
 
-def construct_impl_from_config(config: FeaflowConfig) -> ComputeUnit:
+def construct_impl_from_config(config: FeaflowConfig) -> Component:
     impl_class_name = re.sub(r"Config$", "", config.__class__.__qualname__)
     impl_class = get_class_from_name(f"{config.__module__}.{impl_class_name}")
     return impl_class(config=config)

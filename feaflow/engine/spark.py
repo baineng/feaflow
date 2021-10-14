@@ -7,18 +7,18 @@ from typing import Any, Dict, Optional, Tuple
 from pydantic.typing import Literal
 from pyspark.sql import DataFrame, DataFrameWriter, SparkSession
 
-from feaflow.abstracts import ComputeUnit
+from feaflow.abstracts import Component
 from feaflow.compute.sql import SqlCompute
 from feaflow.engine import (
-    ComputeExecutionUnit,
-    ComputeUnitHandler,
+    ComponentHandler,
+    ComputeTask,
     Engine,
     EngineConfig,
     EngineSession,
     ExecutionEnvironment,
-    ExecutionGraph,
-    SinkExecutionUnit,
-    SourceExecutionUnit,
+    FeaflowDAG,
+    SinkTask,
+    SourceTask,
 )
 from feaflow.exceptions import EngineExecuteError, EngineInitError
 from feaflow.job import Job
@@ -84,7 +84,7 @@ class SparkEngineSession(EngineSession):
             job.engine_name == engine_name
         ), f"The job '{job}' is not able to be run on engine '{engine_name}'."
 
-        exec_graph = self.handle(job, template_context)
+        exec_dag = self.handle(job, template_context)
 
         spark_session = self._get_or_create_spark_session(
             job.name, job.config.engine.config_overlay
@@ -97,30 +97,30 @@ class SparkEngineSession(EngineSession):
             template_context=template_context,
         )
 
-        self._execute(exec_env, exec_graph)
+        self._execute(exec_env, exec_dag)
 
     def stop(self):
         if self._spark_session:
             self._spark_session.stop()
 
     def _execute(
-        self, exec_env: SparkExecutionEnvironment, exec_graph: ExecutionGraph,
+        self, exec_env: SparkExecutionEnvironment, exec_dag: FeaflowDAG,
     ):
         try:
-            for _unit in exec_graph.source_execution_units:
-                table_id, _df = _unit.execution_func(exec_env)
-                for source_id in _unit.ids:
+            for _task in exec_dag.source_tasks:
+                table_id, _df = _task.execution_func(exec_env)
+                for source_id in _task.ids:
                     exec_env.template_context.update({source_id: table_id})
 
-            for _unit in exec_graph.compute_execution_units:
-                table_id = _unit.execution_func(exec_env)
-                for compute_id in _unit.ids:
+            for _task in exec_dag.compute_tasks:
+                table_id = _task.execution_func(exec_env)
+                for compute_id in _task.ids:
                     exec_env.template_context.update({compute_id: table_id})
 
-            for _unit in exec_graph.sink_execution_units:
-                _unit.execution_func(exec_env)
+            for _task in exec_dag.sink_tasks:
+                _task.execution_func(exec_env)
         except Exception as ex:
-            raise EngineExecuteError(str(ex), exec_env, exec_graph)
+            raise EngineExecuteError(str(ex), exec_env, exec_dag)
 
     def _get_or_create_spark_session(
         self, job_name: str, config_overlay: Optional[Dict[str, Any]] = None
@@ -194,20 +194,20 @@ class SparkExecutionEnvironment(ExecutionEnvironment):
 # === Source Handlers ===
 
 
-class QuerySourceHandler(ComputeUnitHandler):
+class QuerySourceHandler(ComponentHandler):
     @classmethod
-    def can_handle(cls, unit: ComputeUnit) -> bool:
-        result = isinstance(unit, QuerySource)
+    def can_handle(cls, comp: Component) -> bool:
+        result = isinstance(comp, QuerySource)
         logger.debug(
-            "Check if QuerySourceHandler could handle the unit '%s', result is %s",
-            unit,
+            "Check if QuerySourceHandler could handle the component '%s', result is %s",
+            comp,
             result,
         )
         return result
 
     @classmethod
-    def handle(cls, source: QuerySource) -> SourceExecutionUnit:
-        logger.info("QuerySourceHandler is handling unit '%s'", source.type)
+    def handle(cls, source: QuerySource) -> SourceTask:
+        logger.info("QuerySourceHandler is handling source '%s'", source.type)
         assert isinstance(source, QuerySource)
 
         def execution_func(
@@ -227,22 +227,22 @@ class QuerySourceHandler(ComputeUnitHandler):
             logger.info("Created temp view '%s'", table_id)
             return table_id, df
 
-        return SourceExecutionUnit(execution_func=execution_func)
+        return SourceTask(execution_func=execution_func)
 
 
-class PandasDataFrameSourceHandler(ComputeUnitHandler):
+class PandasDataFrameSourceHandler(ComponentHandler):
     @classmethod
-    def can_handle(cls, unit: ComputeUnit) -> bool:
-        result = isinstance(unit, PandasDataFrameSource)
+    def can_handle(cls, comp: Component) -> bool:
+        result = isinstance(comp, PandasDataFrameSource)
         logger.debug(
-            "Check if PandasDataFrameSourceHandler could handle the unit '%s', result is %s",
-            unit,
+            "Check if PandasDataFrameSourceHandler could handle the component '%s', result is %s",
+            comp,
             result,
         )
         return result
 
     @classmethod
-    def handle(cls, source: PandasDataFrameSource) -> SourceExecutionUnit:
+    def handle(cls, source: PandasDataFrameSource) -> SourceTask:
         logger.info("PandasDataFrameSourceHandler is handling source '%s'", source.type)
         assert isinstance(source, PandasDataFrameSource)
 
@@ -260,25 +260,25 @@ class PandasDataFrameSourceHandler(ComputeUnitHandler):
 
             return table_id, df
 
-        return SourceExecutionUnit(execution_func=execution_func)
+        return SourceTask(execution_func=execution_func)
 
 
 # === Compute Handlers ===
 
 
-class SqlComputeHandler(ComputeUnitHandler):
+class SqlComputeHandler(ComponentHandler):
     @classmethod
-    def can_handle(cls, unit: ComputeUnit) -> bool:
-        result = isinstance(unit, SqlCompute)
+    def can_handle(cls, comp: Component) -> bool:
+        result = isinstance(comp, SqlCompute)
         logger.debug(
-            "Check if SqlComputeHandler could handle the unit '%s', result is %s",
-            unit,
+            "Check if SqlComputeHandler could handle the component '%s', result is %s",
+            comp,
             result,
         )
         return result
 
     @classmethod
-    def handle(cls, compute: SqlCompute) -> ComputeExecutionUnit:
+    def handle(cls, compute: SqlCompute) -> ComputeTask:
         logger.info("SqlComputeHandler is handling compute '%s'", compute.type)
         assert isinstance(compute, SqlCompute)
 
@@ -296,25 +296,25 @@ class SqlComputeHandler(ComputeUnitHandler):
 
             return table_id
 
-        return ComputeExecutionUnit(execution_func=execution_func)
+        return ComputeTask(execution_func=execution_func)
 
 
 # === Sink Handlers ===
 
 
-class TableSinkHandler(ComputeUnitHandler):
+class TableSinkHandler(ComponentHandler):
     @classmethod
-    def can_handle(cls, unit: ComputeUnit) -> bool:
-        result = isinstance(unit, TableSink)
+    def can_handle(cls, comp: Component) -> bool:
+        result = isinstance(comp, TableSink)
         logger.debug(
-            "Check if TableSinkHandler could handle the unit '%s', result is %s",
-            unit,
+            "Check if TableSinkHandler could handle the component '%s', result is %s",
+            comp,
             result,
         )
         return result
 
     @classmethod
-    def handle(cls, sink: TableSink) -> SinkExecutionUnit:
+    def handle(cls, sink: TableSink) -> SinkTask:
         logger.info("TableSinkHandler is handling sink '%s'", sink.type)
         assert isinstance(sink, TableSink)
 
@@ -340,4 +340,4 @@ class TableSinkHandler(ComputeUnitHandler):
             sink_table_name = sink.get_name(exec_env.template_context)
             writer.saveAsTable(sink_table_name)
 
-        return SinkExecutionUnit(execution_func=execution_func)
+        return SinkTask(execution_func=execution_func)

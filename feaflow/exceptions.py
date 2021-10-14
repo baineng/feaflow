@@ -25,12 +25,14 @@ class EngineInitError(Exception):
 
 
 class EngineHandleError(Exception):
-    def __init__(self, reason, unit):
-        super().__init__(f"Engine handles unit '{unit}' failed, because of: '{reason}'")
+    def __init__(self, reason, comp):
+        super().__init__(
+            f"Engine handles component '{comp}' failed, reason: '{reason}'"
+        )
 
 
 class EngineExecuteError(Exception):
-    def __init__(self, reason, exec_env, exec_graph):
+    def __init__(self, reason, exec_env, exec_dag):
         super().__init__(
-            f"Engine executes job failed, because of: '{reason}', with env: '{exec_env}'"
+            f"Engine executes task failed, reason: '{reason}', environment: '{exec_env}'"
         )

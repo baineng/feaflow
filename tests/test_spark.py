@@ -47,8 +47,10 @@ def test_run_job1(spark_exec_env, example_project, job1):
     sink_df = spark_exec_env.spark_session.table("test_sink_table")
     real = sink_df.toPandas()
     assert_frame_equal(
-        expected.sort_values(by=["title"]).reset_index(drop=True),
-        real.sort_values(by=["title"]).reset_index(drop=True),
+        expected.sort_values(by=["title"]).reset_index(drop=True)[
+            sorted(expected.columns)
+        ],
+        real.sort_values(by=["title"]).reset_index(drop=True)[sorted(real.columns)],
         check_dtype=False,
     )
 
@@ -64,8 +66,10 @@ def test_run_job2(spark_exec_env, example_project, job2, job2_expect_result):
     sink_df = spark_exec_env.spark_session.table("test_sink_table")
     real = sink_df.toPandas()
     assert_frame_equal(
-        job2_expect_result.sort_values(by=["title"]).reset_index(drop=True),
-        real.sort_values(by=["title"]).reset_index(drop=True),
+        job2_expect_result.sort_values(by=["title"]).reset_index(drop=True)[
+            sorted(job2_expect_result.columns)
+        ],
+        real.sort_values(by=["title"]).reset_index(drop=True)[sorted(real.columns)],
         check_dtype=False,
     )
 
@@ -82,7 +86,9 @@ def test_run_job3(spark_exec_env, example_project, job2, job3, job2_expect_resul
     sink_df = spark_exec_env.spark_session.table("test_sink_table2")
     real = sink_df.toPandas()
     assert_frame_equal(
-        job2_expect_result.sort_values(by=["title"]).reset_index(drop=True),
-        real.sort_values(by=["title"]).reset_index(drop=True),
+        job2_expect_result.sort_values(by=["title"]).reset_index(drop=True)[
+            sorted(job2_expect_result.columns)
+        ],
+        real.sort_values(by=["title"]).reset_index(drop=True)[sorted(real.columns)],
         check_dtype=False,
     )

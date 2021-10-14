@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 from pydantic import constr
 
 from feaflow.abstracts import (
-    ComputeUnit,
+    Component,
     FeaflowConfig,
     FeaflowConfigurableComponent,
     FeaflowModel,
@@ -30,11 +30,11 @@ class ExecutionEnvironment(FeaflowModel, ABC):
     execution_date: datetime
 
 
-class ExecutionUnit(FeaflowModel):
+class Task(FeaflowModel):
     pass
 
 
-class SourceExecutionUnit(ExecutionUnit):
+class SourceTask(Task):
     ids: Tuple[str] = ()
     execution_func: Callable[[ExecutionEnvironment], Any]
 
@@ -42,7 +42,7 @@ class SourceExecutionUnit(ExecutionUnit):
         self.ids = self.ids + (id,)
 
 
-class ComputeExecutionUnit(ExecutionUnit):
+class ComputeTask(Task):
     ids: Tuple[str] = ()
     execution_func: Callable[[ExecutionEnvironment], None]
 
@@ -50,30 +50,30 @@ class ComputeExecutionUnit(ExecutionUnit):
         self.ids = self.ids + (id,)
 
 
-class SinkExecutionUnit(ExecutionUnit):
+class SinkTask(Task):
     execution_func: Callable[[ExecutionEnvironment], None]
 
 
-class ExecutionGraph(FeaflowModel):
+class FeaflowDAG(FeaflowModel):
     job: Job
-    source_execution_units: List[SourceExecutionUnit]
-    compute_execution_units: List[ComputeExecutionUnit]
-    sink_execution_units: List[SinkExecutionUnit]
+    source_tasks: List[SourceTask]
+    compute_tasks: List[ComputeTask]
+    sink_tasks: List[SinkTask]
 
 
-class ComputeUnitHandler(ABC):
+class ComponentHandler(ABC):
     @classmethod
-    def can_handle(cls, unit: ComputeUnit) -> bool:
+    def can_handle(cls, comp: Component) -> bool:
         raise NotImplementedError
 
     @classmethod
     @abstractmethod
-    def handle(cls, unit: ComputeUnit) -> ExecutionUnit:
+    def handle(cls, comp: Component) -> Task:
         raise NotImplementedError
 
 
 class EngineSession(ABC):
-    _handlers: List[Type[ComputeUnitHandler]] = None
+    _handlers: List[Type[ComponentHandler]] = None
 
     @abstractmethod
     def run(
@@ -89,49 +89,49 @@ class EngineSession(ABC):
         """
         raise NotImplementedError
 
-    def get_handlers(self) -> Optional[List[Type[ComputeUnitHandler]]]:
+    def get_handlers(self) -> Optional[List[Type[ComponentHandler]]]:
         return self._handlers
 
-    def set_handlers(self, handlers: List[Type[ComputeUnitHandler]]):
+    def set_handlers(self, handlers: List[Type[ComponentHandler]]):
         self._handlers = handlers
 
     def handle(
         self, job, template_context: Optional[Dict[str, Any]] = None
-    ) -> ExecutionGraph:
-        source_execution_units = []
-        compute_execution_units = []
-        sink_execution_units = []
+    ) -> FeaflowDAG:
+        source_tasks = []
+        compute_tasks = []
+        sink_tasks = []
 
         for inx, source in enumerate(job.sources):
-            unit: SourceExecutionUnit = self._handle_one_unit(source)
-            unit.add_id(f"source_{inx}")
-            source_execution_units.append(unit)
+            s_task: SourceTask = self._handle_comp(source)
+            s_task.add_id(f"source_{inx}")
+            source_tasks.append(s_task)
 
         for inx, compute in enumerate(job.computes):
-            unit: ComputeExecutionUnit = self._handle_one_unit(compute)
-            unit.add_id(f"compute_{inx}")
-            compute_execution_units.append(unit)
+            c_task: ComputeTask = self._handle_comp(compute)
+            c_task.add_id(f"compute_{inx}")
+            compute_tasks.append(c_task)
 
         for sink in job.sinks:
-            unit = self._handle_one_unit(sink)
-            sink_execution_units.append(unit)
+            si_task = self._handle_comp(sink)
+            sink_tasks.append(si_task)
 
-        return ExecutionGraph(
+        return FeaflowDAG(
             job=job,
-            source_execution_units=source_execution_units,
-            compute_execution_units=compute_execution_units,
-            sink_execution_units=sink_execution_units,
+            source_tasks=source_tasks,
+            compute_tasks=compute_tasks,
+            sink_tasks=sink_tasks,
         )
 
-    def _handle_one_unit(self, unit: ComputeUnit) -> ExecutionUnit:
+    def _handle_comp(self, comp: Component) -> Task:
         try:
             for handler in self._handlers:
-                if handler.can_handle(unit):
-                    return handler.handle(unit)
+                if handler.can_handle(comp):
+                    return handler.handle(comp)
         except Exception as ex:
-            raise EngineHandleError(str(ex), type(unit).__name__)
+            raise EngineHandleError(str(ex), type(comp).__name__)
 
-        raise EngineHandleError(f"Not handler found", type(unit).__name__)
+        raise EngineHandleError(f"Not handler found", type(comp).__name__)
 
     @abstractmethod
     def __enter__(self):
