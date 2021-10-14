@@ -23,7 +23,7 @@ class TableSinkFormat(str, Enum):
 
 
 class TableSinkConfig(SinkConfig):
-    _template_attrs: Tuple[str] = ("name", "from_", "partition_by")
+    _template_attrs: Tuple[str] = ("name", "from_", "partition")
     type: Literal["table"] = "table"
 
     name: str
