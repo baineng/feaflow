@@ -334,15 +334,22 @@ class TableSinkHandler(ComponentHandler):
 
             from_df = exec_env.spark_session.sql(from_sql)
             writer: DataFrameWriter = (
-                from_df.write.mode(sink.get_config("mode").value).format(
-                    sink.get_config("format").value
-                )
+                from_df.write.mode(sink.get_config("mode").value)
             )
-            partition_by = sink.get_config("partition_by", exec_env.template_context)
-            if partition_by:
-                writer = writer.partitionBy(partition_by)
 
+            spark = exec_env.spark_session
             sink_table_name = sink.get_name(exec_env.template_context)
-            writer.insertInto(sink_table_name)
+            if spark._jsparkSession.catalog().tableExists(sink_table_name):
+                # if sink table exists, just inert into there
+                writer.insertInto(sink_table_name)
+            else:
+                # otherwise create the sink table
+                writer = writer.format(sink.get_config("format").value)
+                partition_by = sink.get_config(
+                    "partition_by", exec_env.template_context
+                )
+                if partition_by:
+                    writer = writer.partitionBy(partition_by)
+                writer.saveAsTable(sink_table_name)
 
         return SinkTask(execution_func=execution_func)
