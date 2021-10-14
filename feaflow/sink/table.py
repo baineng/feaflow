@@ -30,7 +30,7 @@ class TableSinkConfig(SinkConfig):
     from_: Optional[str] = Field(alias="from", default=None)
     mode: TableSinkMode = TableSinkMode.APPEND
     format: TableSinkFormat = TableSinkFormat.PARQUET
-    partition_by: Optional[List[str]] = None
+    partition: Optional[List[str]] = None
 
 
 class TableSink(Sink):

@@ -324,6 +324,8 @@ class TableSinkHandler(ComponentHandler):
         assert isinstance(sink, TableSink)
 
         def execution_func(exec_env: SparkExecutionEnvironment):
+            from pyspark.sql.functions import lit
+
             from_sql = sink.get_from(exec_env.template_context)
             if from_sql is None:
                 assert (
@@ -331,25 +333,42 @@ class TableSinkHandler(ComponentHandler):
                 ), "There is no compute result found"
                 compute_0 = exec_env.template_context["compute_0"]
                 from_sql = f"SELECT * FROM {compute_0}"
-
+            logger.info("Creating TableSink input data by from_sql: \n%s", from_sql)
             from_df = exec_env.spark_session.sql(from_sql)
+
+            partition = sink.get_config("partition", exec_env.template_context)
+            partition_cols = []
+            if partition:
+                for part_spec in partition:
+                    part_col, part_val = map(str.strip, part_spec.split("="))
+                    logger.info(
+                        "Add partition column '%s' and value '%s'", part_col, part_val
+                    )
+                    from_df = from_df.withColumn(part_col, lit(part_val))
+                    partition_cols.append(part_col)
+
+            spark = exec_env.spark_session
             writer: DataFrameWriter = (
                 from_df.write.mode(sink.get_config("mode").value)
             )
-
-            spark = exec_env.spark_session
             sink_table_name = sink.get_name(exec_env.template_context)
             if spark._jsparkSession.catalog().tableExists(sink_table_name):
+                logger.info("Inserting into sink table '%s'", sink_table_name)
                 # if sink table exists, just inert into there
                 writer.insertInto(sink_table_name)
             else:
                 # otherwise create the sink table
-                writer = writer.format(sink.get_config("format").value)
-                partition_by = sink.get_config(
-                    "partition_by", exec_env.template_context
+                table_format = sink.get_config("format").value
+                writer = writer.format(table_format)
+                if len(partition_cols) > 0:
+                    writer = writer.partitionBy(partition_cols)
+                logger.info(
+                    "Sink table '%s' does not exist, creating the table and inserting data into it. "
+                    "format: '%s', partition: '%s'",
+                    sink_table_name,
+                    table_format,
+                    partition_cols,
                 )
-                if partition_by:
-                    writer = writer.partitionBy(partition_by)
                 writer.saveAsTable(sink_table_name)
 
         return SinkTask(execution_func=execution_func)
