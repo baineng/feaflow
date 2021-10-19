@@ -15,7 +15,6 @@ from feaflow.utils import (
     construct_config_from_dict,
     construct_impl_from_config,
     find_files_by_patterns,
-    make_tzaware,
 )
 
 logger = logging.Logger(__name__)
