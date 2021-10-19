@@ -7,9 +7,9 @@ from feaflow.sink.table import TableSinkConfig
 from feaflow.source.query import QuerySourceConfig
 
 
-def test_create_project(example_project_path):
-    project = Project(example_project_path)
-    assert project.name == "Feaflow Test Project"
+def test_create_project(project_misc_path):
+    project = Project(project_misc_path)
+    assert project.name == "Feaflow Test Project - Misc"
 
 
 def test_invalid_project(tmpdir):
@@ -27,8 +27,8 @@ def test_invalid_project(tmpdir):
         Project(tmpdir)
 
 
-def test_scan_jobs(example_project):
-    jobs = example_project.scan_jobs()
+def test_scan_jobs(project_misc):
+    jobs = project_misc.scan_jobs()
 
     job1_config = next(filter(lambda j: j.name == "test_job1", jobs))
     assert job1_config.scheduler.schedule_interval == "0 6 * * *"

@@ -3,8 +3,8 @@ from feaflow.job import JobConfig
 from feaflow.source.pandas import PandasDataFrameSourceConfig
 
 
-def test_construct_job(example_project):
-    jobs = example_project.scan_jobs()
+def test_construct_job(project_misc):
+    jobs = project_misc.scan_jobs()
     loop_data = [
         {"name": "l1", "schedule_interval": "0 6 * * *"},
         {"name": "l2", "schedule_interval": "1 7 * * *"},

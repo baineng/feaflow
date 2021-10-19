@@ -1,0 +1,18 @@
+project_name: Feaflow Test Project - Feast
+
+engines:
+  - name: default_spark
+    type: spark
+    master: local
+
+scheduler_default:
+  catchup: true
+
+feast:
+  registry: data/registry.db
+  provider: local
+  online_store:
+    type: sqlite
+    path: data/online_store.db
+  offline_store:
+    type: file

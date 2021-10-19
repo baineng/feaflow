@@ -8,8 +8,8 @@ from feaflow.source.query import QuerySource
 from feaflow.utils import deep_merge_models
 
 
-def test_construct_job(example_project):
-    jobs = example_project.scan_jobs()
+def test_construct_job(project_misc):
+    jobs = project_misc.scan_jobs()
     job1: Job = Job(next(filter(lambda j: j.name == "test_job1", jobs)))
     assert job1.config.name == "test_job1"
 

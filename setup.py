@@ -18,6 +18,8 @@ AIRFLOW_REQUIRES = ["apache-airflow>=2.0.0", "apache-airflow-providers-docker>=2
 
 SPARK_REQUIRES = ["pyspark"]
 
+FEAST_REQUIRES = ["feast>=0.12.0"]
+
 DEV_REQUIRES = (
     [
         "flake8",
@@ -31,6 +33,7 @@ DEV_REQUIRES = (
     ]
     + AIRFLOW_REQUIRES
     + SPARK_REQUIRES
+    + FEAST_REQUIRES
 )
 
 setup(
@@ -51,6 +54,7 @@ setup(
         "dev": DEV_REQUIRES,
         "airflow": AIRFLOW_REQUIRES,
         "spark": SPARK_REQUIRES,
+        "feast": FEAST_REQUIRES,
     },
     keywords=("feature featurestore feature_ingestion"),
     classifiers=[

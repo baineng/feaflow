@@ -35,12 +35,12 @@ def prepare_dataset(spark: SparkSession) -> pd.DataFrame:
 
 
 @pytest.mark.integration
-def test_run_job1(spark_exec_env, example_project, job1):
+def test_run_job1(spark_exec_env, project_misc, job1):
     expected = prepare_dataset(spark_exec_env.spark_session)
 
     execution_date = datetime.utcnow()
     template_context = construct_template_context(
-        example_project, job1.config, execution_date
+        project_misc, job1.config, execution_date
     )
     spark_exec_env.engine_session.run(job1, execution_date, template_context)
 
@@ -56,10 +56,10 @@ def test_run_job1(spark_exec_env, example_project, job1):
 
 
 @pytest.mark.integration
-def test_run_job2(spark_exec_env, example_project, job2, job2_expect_result):
+def test_run_job2(spark_exec_env, project_misc, job2, job2_expect_result):
     execution_date = datetime.utcnow()
     template_context = construct_template_context(
-        example_project, job2.config, execution_date
+        project_misc, job2.config, execution_date
     )
     spark_exec_env.engine_session.run(job2, execution_date, template_context)
 
@@ -75,10 +75,10 @@ def test_run_job2(spark_exec_env, example_project, job2, job2_expect_result):
 
 
 @pytest.mark.integration
-def test_run_job3(spark_exec_env, example_project, job2, job3, job2_expect_result):
+def test_run_job3(spark_exec_env, project_misc, job2, job3, job2_expect_result):
     execution_date = datetime.utcnow()
     template_context = construct_template_context(
-        example_project, job2.config, execution_date
+        project_misc, job2.config, execution_date
     )
     spark_exec_env.engine_session.run(job2, execution_date, template_context)
     spark_exec_env.engine_session.run(job3, execution_date, template_context)

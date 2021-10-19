@@ -357,6 +357,7 @@ class TableSinkHandler(ComponentHandler):
                 # if sink table exists, just inert into there
                 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
                 writer.insertInto(sink_table_name)
+                # may use spark sql "insert overwrite table ... partion (...)" in the future
             else:
                 # otherwise create the sink table
                 table_format = sink.get_config("format").value

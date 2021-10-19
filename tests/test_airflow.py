@@ -12,15 +12,15 @@ from feaflow import airflow
 
 
 @pytest.fixture
-def job1_dag(example_project) -> DAG:
-    dags = airflow.create_dags_from_project(example_project)
+def job1_dag(project_misc) -> DAG:
+    dags = airflow.create_dags_from_project(project_misc)
     job1_dag = next(filter(lambda d: d.dag_id == "test_job1", dags))
     return job1_dag
 
 
 @pytest.fixture
-def job2_dag(example_project) -> DAG:
-    dags = airflow.create_dags_from_project(example_project)
+def job2_dag(project_misc) -> DAG:
+    dags = airflow.create_dags_from_project(project_misc)
     job1_dag = next(filter(lambda d: d.dag_id == "test_job2", dags))
     return job1_dag
 
@@ -43,13 +43,13 @@ def test_create_dag(job1_dag):
     assert task.command == 'bash -e "env"'
 
 
-def test_dag_import(example_project):
-    dag_bag = DagBag(dag_folder=example_project.root_dir, include_examples=False)
+def test_dag_import(project_misc):
+    dag_bag = DagBag(dag_folder=project_misc.root_dir, include_examples=False)
     assert len(dag_bag.import_errors) == 0, "No Import Failures"
 
 
-def test_dag_from_dag_bag(example_project):
-    dag_bag = DagBag(dag_folder=example_project.root_dir, include_examples=False)
+def test_dag_from_dag_bag(project_misc):
+    dag_bag = DagBag(dag_folder=project_misc.root_dir, include_examples=False)
     job1_dag: DAG = dag_bag.dags["test_job1"]
     test_create_dag(job1_dag)
 

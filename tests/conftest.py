@@ -28,23 +28,34 @@ def pytest_configure(config):
     #     os.environ["AIRFLOW_HOME"] = tempfile.mkdtemp()
 
 
-@pytest.fixture
-def example_project_path():
-    return Path(__file__).parent.joinpath("example_project")
-
-
-@pytest.fixture
-def example_project(example_project_path, tmpdir):
-    project = Project(example_project_path)
+def update_project_warehouse_dir(project: Project, warehouse_dir: str):
     project.get_engine_by_name("default_spark").get_config("config").update(
-        {"spark.sql.warehouse.dir": f"file://{tmpdir}"}
+        {"spark.sql.warehouse.dir": f"file://{warehouse_dir}"}
     )
+
+
+@pytest.fixture
+def project_misc_path():
+    return Path(__file__).parent / "test_projects" / "misc"
+
+
+@pytest.fixture
+def project_misc(project_misc_path, tmpdir):
+    project = Project(project_misc_path)
+    update_project_warehouse_dir(project, tmpdir)
+    return project
+
+
+@pytest.fixture
+def project_feast(tmpdir):
+    project = Project(Path(__file__).parent / "test_projects" / "feast")
+    update_project_warehouse_dir(project, tmpdir)
     return project
 
 
 @pytest.fixture()
-def spark_exec_env(example_project, tmpdir) -> SparkExecutionEnvironment:
-    engine = example_project.get_engine_by_name("default_spark")
+def spark_exec_env(project_misc, tmpdir) -> SparkExecutionEnvironment:
+    engine = project_misc.get_engine_by_name("default_spark")
     assert type(engine) == SparkEngine
     with engine.new_session() as engine_session:
         assert isinstance(engine_session, SparkEngineSession)
@@ -60,20 +71,20 @@ def spark_exec_env(example_project, tmpdir) -> SparkExecutionEnvironment:
 
 
 @pytest.fixture
-def job1(example_project):
-    jobs = example_project.scan_jobs()
+def job1(project_misc):
+    jobs = project_misc.scan_jobs()
     return Job(next(filter(lambda j: j.name == "test_job1", jobs)))
 
 
 @pytest.fixture
-def job2(example_project):
-    jobs = example_project.scan_jobs()
+def job2(project_misc):
+    jobs = project_misc.scan_jobs()
     return Job(next(filter(lambda j: j.name == "test_job2", jobs)))
 
 
 @pytest.fixture
-def job3(example_project):
-    jobs = example_project.scan_jobs()
+def job3(project_misc):
+    jobs = project_misc.scan_jobs()
     return Job(next(filter(lambda j: j.name == "test_job3", jobs)))
 
 
