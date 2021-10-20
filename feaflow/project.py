@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import yaml
-from pydantic import DirectoryPath, FilePath, constr
+from pydantic import DirectoryPath, Field, FilePath, StrictStr, constr
 
 from feaflow.abstracts import FeaflowModel
 from feaflow.constants import BUILTIN_ENGINES
 from feaflow.engine import Engine, EngineConfig
-from feaflow.exceptions import ConfigLoadError
+from feaflow.exceptions import ConfigLoadError, NotSupportedFeature
 from feaflow.job import Job, JobConfig, parse_job_config_file
 from feaflow.utils import (
     construct_config_from_dict,
@@ -20,12 +20,20 @@ from feaflow.utils import (
 logger = logging.Logger(__name__)
 
 
+class FeastConfig(FeaflowModel):
+    provider: StrictStr = "local"
+    registry: Union[StrictStr, Dict[str, Any]] = "data/registry.db"
+    online_store: Any
+    offline_store: Any
+
+
 class ProjectConfig(FeaflowModel):
-    name: constr(regex=r"^[^_][\w ]+$", strip_whitespace=True, strict=True)
+    name: constr(regex=r"^[^_][\w -]+$", strip_whitespace=True, strict=True)
     root_dir: DirectoryPath
     config_file_path: FilePath
     engines: List[Dict[str, Any]]
     scheduler_default: Optional[Dict[str, Any]] = None
+    feast_config: Optional[FeastConfig] = Field(alias="feast", default=None)
 
 
 class Project:
@@ -33,6 +41,7 @@ class Project:
         self._config = create_project_config_from_dir(project_dir)
         self._engine_configs = None
         self._engines = None
+        self._feast = None
 
     @property
     def config(self) -> ProjectConfig:
@@ -103,6 +112,27 @@ class Project:
         engine = self.get_engine_by_name(job.engine_name)
         with engine.new_session() as engine_session:
             engine_session.run(job, execution_date, template_context)
+
+    def support_feast(self) -> bool:
+        has_defined_feast = self.config.feast_config is not None
+        if has_defined_feast:
+            try:
+                import feast
+
+                return True
+            except ImportError:
+                logger.warning(
+                    f"Project {self.name} has defined 'feast' in config file, "
+                    f"but 'feast' is not installed in current execution environment."
+                )
+        return False
+
+    def get_feast(self) -> "feaflow.feast.Feast":
+        if self._feast is None:
+            from feast import Feast
+
+            self._feast = Feast(self)
+        return self._feast
 
 
 def create_project_config_from_dir(project_dir: Union[str, Path]) -> ProjectConfig:

@@ -30,7 +30,8 @@ def get_class_from_name(class_name: str):
 
 
 def construct_config_from_dict(
-    config_dict: Dict[str, Any], builtin_types: Dict[str, str],
+    config_dict: Dict[str, Any],
+    builtin_types: Dict[str, str],
 ) -> FeaflowConfig:
     assert "type" in config_dict
     impl_type = str(config_dict["type"]).strip().lower()
@@ -81,7 +82,7 @@ def create_random_str(short: bool = False) -> str:
 _jinja2_env: Optional[Environment] = None
 
 
-def render_template_method_jinja2(
+def render_template_method__jinja2(
     template_source: str, template_context: Dict[str, Any]
 ) -> str:
     global _jinja2_env
@@ -90,12 +91,12 @@ def render_template_method_jinja2(
     return _jinja2_env.from_string(template_source).render(**template_context)
 
 
-def render_template_method_replace(
+def render_template_method__replace(
     template_source: str, template_context: Dict[str, Any]
 ) -> str:
     for k, v in template_context.items():
         template_source = re.sub(
-            r"\{\{ *?" + re.escape(k) + " *?\}\}", str(v), template_source
+            r"{{ *?" + re.escape(k) + r" *?}}", str(v), template_source
         )
     return template_source
 
@@ -110,9 +111,9 @@ def render_template(
 
     if isinstance(template_source, str):
         render_method = (
-            render_template_method_jinja2
+            render_template_method__jinja2
             if use_jinja2
-            else render_template_method_replace
+            else render_template_method__replace
         )
         return render_method(template_source, template_context)
 

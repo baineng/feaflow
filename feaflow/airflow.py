@@ -89,7 +89,9 @@ def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
             python_args = {"project": project, "job_config": job_config}
             logger.debug("Creating PythonOperator with arguments: %s", python_args)
             _ = PythonOperator(
-                task_id=task_id, python_callable=_python_run_job, op_kwargs=python_args,
+                task_id=task_id,
+                python_callable=_python_run_job,
+                op_kwargs=python_args,
             )
 
         return dag

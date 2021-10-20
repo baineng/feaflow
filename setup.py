@@ -23,12 +23,12 @@ FEAST_REQUIRES = ["feast>=0.12.0"]
 DEV_REQUIRES = (
     [
         "flake8",
-        "black==19.10b0",
-        "isort>=5",
-        "mypy==0.790",
-        "pytest==6.0.0",
+        "black",
+        "isort",
+        "mypy",
+        "pytest==6.2.5",
         "pytest-xdist",
-        "assertpy==1.1",
+        "assertpy",
         "pandas>=1.0.0",
     ]
     + AIRFLOW_REQUIRES
@@ -46,7 +46,9 @@ setup(
     long_description_content_type="text/markdown",
     python_requires=">=3.7.0",
     url="https://github.com/thenetcircle/feaflow",
-    project_urls={"Bug Tracker": "https://github.com/thenetcircle/feaflow/issues",},
+    project_urls={
+        "Bug Tracker": "https://github.com/thenetcircle/feaflow/issues",
+    },
     license="Apache License, Version 2.0",
     packages=find_packages(include=("feaflow*",)),
     install_requires=INSTALL_REQUIRES,

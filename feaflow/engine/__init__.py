@@ -19,7 +19,7 @@ from feaflow.job import Job
 class Engine(FeaflowConfigurableComponent, ABC):
     @abstractmethod
     def new_session(self):
-        """ :rtype: `feaflow.engine.EngineSession` """
+        """:rtype: `feaflow.engine.EngineSession`"""
         raise NotImplementedError
 
 
@@ -135,7 +135,7 @@ class EngineSession(ABC):
 
     @abstractmethod
     def __enter__(self):
-        """ :rtype: `feaflow.engine.EngineSession` """
+        """:rtype: `feaflow.engine.EngineSession`"""
         raise NotImplementedError
 
     @abstractmethod

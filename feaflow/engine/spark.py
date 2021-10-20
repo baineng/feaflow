@@ -104,7 +104,9 @@ class SparkEngineSession(EngineSession):
             self._spark_session.stop()
 
     def _execute(
-        self, exec_env: SparkExecutionEnvironment, exec_dag: FeaflowDAG,
+        self,
+        exec_env: SparkExecutionEnvironment,
+        exec_dag: FeaflowDAG,
     ):
         try:
             for _task in exec_dag.source_tasks:
@@ -127,7 +129,8 @@ class SparkEngineSession(EngineSession):
     ) -> SparkSession:
         if self._spark_session is None:
             logger.info(
-                "Creating a new SparkSession with config overlay: %s", config_overlay,
+                "Creating a new SparkSession with config overlay: %s",
+                config_overlay,
             )
             self._spark_session = self._create_spark_session(job_name, config_overlay)
         return self._spark_session
@@ -348,9 +351,7 @@ class TableSinkHandler(ComponentHandler):
                     partition_cols.append(part_col)
 
             spark = exec_env.spark_session
-            writer: DataFrameWriter = (
-                from_df.write.mode(sink.get_config("mode").value)
-            )
+            writer: DataFrameWriter = from_df.write.mode(sink.get_config("mode").value)
             sink_table_name = sink.get_name(exec_env.template_context)
             if spark._jsparkSession.catalog().tableExists(sink_table_name):
                 logger.info("Inserting into sink table '%s'", sink_table_name)

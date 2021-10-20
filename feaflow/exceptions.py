@@ -36,3 +36,10 @@ class EngineExecuteError(Exception):
         super().__init__(
             f"Engine executes task failed, reason: '{reason}', environment: '{exec_env}'"
         )
+
+
+class NotSupportedFeature(Exception):
+    def __init__(self, feature):
+        super().__init__(
+            f"The feature '{feature}' is not supported in current project."
+        )

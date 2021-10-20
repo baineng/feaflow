@@ -1,0 +1,6 @@
+registry: "{{ registry }}"
+project: "{{ project }}"
+provider: "{{ provider }}"
+
+{% if online_store %}{{ online_store }}{% endif %}
+{% if offline_store %}{{ offline_store }}{% endif %}

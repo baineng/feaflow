@@ -55,12 +55,23 @@ def test_dag_from_dag_bag(project_misc):
 
 
 @pytest.mark.integration
+@pytest.mark.skip
 def test_run_dag(job2_dag):
     # FIXME: it run two times everytime
     task = job2_dag.get_task(airflow.DEFAULT_TASK_ID)
-    TaskInstance(task, execution_date=datetime.now()).run(
-        mark_success=False,
-        ignore_all_deps=True,
-        ignore_depends_on_past=True,
+    task.run(
+        start_date=datetime.now(),
+        end_date=(datetime.now() + timedelta(days=1)),
+        ignore_first_depends_on_past=True,
         ignore_ti_state=True,
+        mark_success=False,
+        test_mode=True,
     )
+    # TaskInstance(
+    #     task, execution_date=datetime.utcnow().replace(hour=6, minute=0, second=0)
+    # ).run(
+    #     mark_success=False,
+    #     ignore_all_deps=True,
+    #     ignore_depends_on_past=True,
+    #     ignore_ti_state=True,
+    # )

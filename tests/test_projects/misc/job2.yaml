@@ -15,7 +15,7 @@ sources:
   - type: pandas
     file:
       type: csv
-      path: "{{ project_root }}/../data/pandas_df1.csv"
+      path: "{{ project_root }}/../../data/pandas_df1.csv"
       args:
         index_col: 0
 
