@@ -5,7 +5,7 @@ from feaflow import feast
 
 def test_init(project_feast):
     with feast.init(project_feast) as feast_project:
-        print(feast_project.feast_project_dir)
+        feast_project.apply()
 
     # declar = feast._generate_project_declarations()
     # print(declar)

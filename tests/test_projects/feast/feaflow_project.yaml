@@ -1,4 +1,4 @@
-project_name: Feaflow Test Project - Feast
+project_name: Feaflow_Feast
 
 engines:
   - name: default_spark

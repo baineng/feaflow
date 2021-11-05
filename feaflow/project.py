@@ -29,7 +29,7 @@ class FeastProjectConfig(FeaflowModel):
 
 
 class ProjectConfig(FeaflowModel):
-    name: constr(regex=r"^[^_][\w -]+$", strip_whitespace=True, strict=True)
+    name: constr(regex=r"^[^_][\w_]+$", strip_whitespace=True, strict=True)
     root_dir: DirectoryPath
     config_file_path: FilePath
     engines: List[Dict[str, Any]]

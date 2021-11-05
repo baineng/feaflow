@@ -1,11 +1,15 @@
 import contextlib
 import logging
 import os.path
+import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Iterator, Tuple
+from typing import Any, ContextManager, Dict, Iterator, Tuple
 
 import yaml
+from feast.errors import FeastProviderLoginError
+from feast.repo_config import load_repo_config
+from feast.repo_operations import apply_total
 
 from feaflow.exceptions import NotSupportedFeature
 from feaflow.job_config import FeastConfig
@@ -18,19 +22,25 @@ TEMPLATE_DIR = (Path(__file__).parent / "template" / "feast").absolute()
 
 
 class FeastProject:
-    def __init__(self, feaflow_project: Project, feast_project_dir: str):
-        assert os.path.exists(feast_project_dir)
+    def __init__(self, feaflow_project: Project, feast_project_dir: Path):
+        assert feast_project_dir.exists()
+        assert (feast_project_dir / "feature_store.yaml").exists()
 
         self.feaflow_project = feaflow_project
         self.feast_project_dir = feast_project_dir
 
-    def apply(self):
+    def apply(self, skip_source_validation=True):
         """Apply Feast infra"""
-        pass
+        repo_config = load_repo_config(self.feast_project_dir)
+        try:
+            apply_total(repo_config, self.feast_project_dir, skip_source_validation)
+        except FeastProviderLoginError as e:
+            logger.exception(e)
+            raise
 
 
 @contextlib.contextmanager
-def init(feaflow_project: Project) -> Iterator[FeastProject]:
+def init(feaflow_project: Project) -> ContextManager[FeastProject]:
     """Init a Feast project within a temp folder"""
 
     if not feaflow_project.support_feast():
@@ -48,7 +58,10 @@ def init(feaflow_project: Project) -> Iterator[FeastProject]:
             f.write(project_declarations)
 
         logger.info("Initializing Done")
-        yield FeastProject(feaflow_project, feast_project_dir)
+        feast_project_path = Path(feast_project_dir).resolve()
+        sys.path.append(str(feast_project_path))
+        yield FeastProject(feaflow_project, feast_project_path)
+        sys.path.pop()
 
 
 def _generate_project_config(feaflow_project: Project) -> str:
@@ -146,7 +159,13 @@ from {bs_module_name} import {bs_class_name}
     # entity starts
     for entity_config in fv_cfg.entities:
         entity_key = entity_config.name
-        entity_args = _dict_to_func_args(entity_config.dict(exclude_none=True))
+        entity_args = entity_config.dict(exclude_none=True)
+        if "value_type" in entity_args:
+            entity_args["value_type"] = "repr__" + _str_to_feast_value_type(
+                entity_args["value_type"]
+            )
+        entity_args = _dict_to_func_args(entity_args)
+
         entity_declaration = f"""\
 entity_{entity_key} = Entity(
     {entity_args}
