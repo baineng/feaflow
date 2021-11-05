@@ -1,5 +1,5 @@
 from feaflow.airflow_config import AirflowSchedulerConfig
-from feaflow.job import JobConfig
+from feaflow.job_config import JobConfig
 from feaflow.source.pandas import PandasDataFrameSourceConfig
 
 

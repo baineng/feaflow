@@ -9,8 +9,9 @@ from pydantic import DirectoryPath, Field, FilePath, StrictStr, constr
 from feaflow.abstracts import FeaflowModel
 from feaflow.constants import BUILTIN_ENGINES
 from feaflow.engine import Engine, EngineConfig
-from feaflow.exceptions import ConfigLoadError, NotSupportedFeature
-from feaflow.job import Job, JobConfig, parse_job_config_file
+from feaflow.exceptions import ConfigLoadError
+from feaflow.job import Job, parse_job_config_file
+from feaflow.job_config import JobConfig
 from feaflow.utils import (
     construct_config_from_dict,
     construct_impl_from_config,
@@ -20,7 +21,7 @@ from feaflow.utils import (
 logger = logging.Logger(__name__)
 
 
-class FeastConfig(FeaflowModel):
+class FeastProjectConfig(FeaflowModel):
     provider: StrictStr = "local"
     registry: Union[StrictStr, Dict[str, Any]] = "data/registry.db"
     online_store: Any
@@ -33,7 +34,9 @@ class ProjectConfig(FeaflowModel):
     config_file_path: FilePath
     engines: List[Dict[str, Any]]
     scheduler_default: Optional[Dict[str, Any]] = None
-    feast_config: Optional[FeastConfig] = Field(alias="feast", default=None)
+    feast_project_config: Optional[FeastProjectConfig] = Field(
+        alias="feast", default=None
+    )
 
 
 class Project:
@@ -114,7 +117,7 @@ class Project:
             engine_session.run(job, execution_date, template_context)
 
     def support_feast(self) -> bool:
-        has_defined_feast = self.config.feast_config is not None
+        has_defined_feast = self.config.feast_project_config is not None
         if has_defined_feast:
             try:
                 import feast

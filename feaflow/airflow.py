@@ -6,7 +6,8 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 
 from feaflow.airflow_config import AirflowSchedulerConfig
-from feaflow.job import Job, JobConfig
+from feaflow.job import Job
+from feaflow.job_config import JobConfig
 from feaflow.project import Project
 from feaflow.utils import (
     construct_scheduler_config_from_dict,

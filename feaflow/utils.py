@@ -5,7 +5,7 @@ import re
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import pendulum
 from jinja2 import Environment
@@ -105,7 +105,7 @@ def render_template(
     template_source: Any,
     template_context: Optional[Dict[str, Any]] = None,
     use_jinja2: bool = True,
-) -> [FeaflowModel, str]:
+) -> Union[FeaflowModel, str]:
     if template_context is None:
         template_context = {}
 
@@ -202,7 +202,7 @@ def make_tzaware(dt: datetime) -> datetime:
 
 def construct_template_context(
     project: "feaflow.project.Project",
-    job_config: "feaflow.job.JobConfig",
+    job_config: "feaflow.job_config.JobConfig",
     execution_date: Optional[datetime] = None,
     upstream_template_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
