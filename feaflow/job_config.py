@@ -35,7 +35,7 @@ class FeastEntityConfig(FeaflowImmutableModel):
 
 class FeastFeatureConfig(FeaflowImmutableModel):
     name: str
-    value_type: str = Field(alias="type", default="UNKNOWN")
+    dtype: str = Field(alias="type", default="INT")
     labels: Optional[Dict[str, str]] = None
 
 

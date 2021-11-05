@@ -1,3 +1,5 @@
+import datetime
+
 from feast import Entity, Feature, FeatureView, ValueType
 
 # Batch Sources Declarations Starts
