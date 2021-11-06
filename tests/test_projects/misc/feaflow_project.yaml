@@ -1,4 +1,4 @@
-project_name: Feaflow Test Project - Misc
+project_name: Feaflow_Misc
 
 engines:
   - name: default_spark

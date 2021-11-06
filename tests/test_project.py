@@ -9,7 +9,7 @@ from feaflow.source.query import QuerySourceConfig
 
 def test_create_project(project_misc_path):
     project = Project(project_misc_path)
-    assert project.name == "Feaflow Test Project - Misc"
+    assert project.name == "Feaflow_Misc"
 
 
 def test_invalid_project(tmpdir):
