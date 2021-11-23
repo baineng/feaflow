@@ -4,15 +4,15 @@ import os.path
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Iterator, Tuple
+from typing import Any, ContextManager, Dict, Iterator, Optional, Tuple
 
 import yaml
 from feast.errors import FeastProviderLoginError
-from feast.repo_config import load_repo_config
+from feast.repo_config import RepoConfig, load_repo_config
 from feast.repo_operations import apply_total
 
 from feaflow.exceptions import NotSupportedFeature
-from feaflow.job_config import FeastConfig
+from feaflow.job_config import FeastConfig, JobConfig
 from feaflow.project import Project
 from feaflow.utils import render_template
 
@@ -29,11 +29,15 @@ class FeastProject:
         self.feaflow_project = feaflow_project
         self.feast_project_dir = feast_project_dir
 
+    def load_repo_config(self) -> RepoConfig:
+        return load_repo_config(self.feast_project_dir)
+
     def apply(self, skip_source_validation=True):
         """Apply Feast infra"""
-        repo_config = load_repo_config(self.feast_project_dir)
         try:
-            apply_total(repo_config, self.feast_project_dir, skip_source_validation)
+            apply_total(
+                self.load_repo_config(), self.feast_project_dir, skip_source_validation
+            )
         except FeastProviderLoginError as e:
             logger.exception(e)
             raise
@@ -89,12 +93,13 @@ def _generate_project_declarations(feaflow_project: Project) -> str:
     jobs = feaflow_project.scan_jobs()
 
     for job_config in jobs:
-        if job_config.feast:
+        job_declarations = _generate_declarations_from_job_config(job_config)
+        if job_declarations:
             (
                 _batch_source,
                 _entities,
                 _feature_view,
-            ) = _generate_declarations_from_config(job_config.feast)
+            ) = job_declarations
 
             if _batch_source[0] in batch_sources:
                 logger.warning(
@@ -128,9 +133,13 @@ def _generate_project_declarations(feaflow_project: Project) -> str:
     )
 
 
-def _generate_declarations_from_config(
-    feast_config: FeastConfig,
-) -> Tuple[tuple, dict, tuple]:
+def _generate_declarations_from_job_config(
+    job_config: JobConfig,
+) -> Optional[Tuple[tuple, dict, tuple]]:
+    if job_config.feast is None:
+        return None
+    feast_config = job_config.feast
+
     fv_cfg = feast_config.feature_view
     batch_source: Tuple[str, str]
     entities: Dict[str, str] = {}

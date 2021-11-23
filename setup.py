@@ -12,6 +12,7 @@ INSTALL_REQUIRES = [
     "Jinja2>=2.0.0",
     "pandas>=1.0.0",
     "pendulum>=2.0.0",
+    "sqlparse>=0.3.0",
 ]
 
 AIRFLOW_REQUIRES = ["apache-airflow>=2.0.0", "apache-airflow-providers-docker>=2.0.0"]

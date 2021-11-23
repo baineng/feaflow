@@ -10,4 +10,5 @@ BUILTIN_COMPUTES = {"sql": "feaflow.compute.sql.SqlCompute"}
 BUILTIN_SINKS = {
     "table": "feaflow.sink.table.TableSink",
     "redis": "feaflow.sink.redis.RedisSink",
+    "feature_view": "feaflow.sink.feature_view.FeatureViewSink",
 }
