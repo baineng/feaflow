@@ -42,7 +42,7 @@ sinks:
     ingest:
       from: |-
         SELECT id /* entity: user_id */,
-               send_message_amount,
+               send_message_amount as send_amount,
                login_times,
                logout_times
         FROM {{ compute_0 }}

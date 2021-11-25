@@ -1,9 +1,15 @@
 from datetime import timedelta
 
+import pytest
 from feast.infra.offline_stores.file import FileOfflineStoreConfig
 from feast.infra.online_stores.sqlite import SqliteOnlineStoreConfig
 
 from feaflow import feast
+from feaflow.feast import (
+    EntityDefinition,
+    FeatureDefinition,
+    _generate_project_declarations,
+)
 from feaflow.sink.feature_view import FeatureViewSinkConfig
 
 
@@ -54,3 +60,61 @@ def test_apply(project_feast):
     with feast.init(project_feast) as feast_project:
         feast_project.apply()
         print(1)
+
+
+def test_generate_project_declarations(project_feast):
+    project_defs = _generate_project_declarations(project_feast)
+    print(project_defs)
+
+
+@pytest.mark.parametrize(
+    "test_sql, expected_entities, expected_features",
+    [
+        (
+            """
+            SELECT id /*entity, type: string*/,
+                   send_message_amount/* type: string*/,
+                   login_times,
+                   logout_times
+            FROM compute_0    
+            """,
+            [EntityDefinition(name="id", join_key="id", value_type="ValueType.STRING")],
+            [
+                FeatureDefinition(name="send_message_amount", dtype="ValueType.STRING"),
+                FeatureDefinition(name="login_times"),
+                FeatureDefinition(name="logout_times"),
+            ],
+        ),
+        (
+            """
+            SELECT id /* entity: user_id, type: string */,
+                   send_message_amount as feature_1 /* type: string */,
+                   login_times,
+                   logout_times /* type: int */
+            FROM compute_0    
+            """,
+            [
+                EntityDefinition(
+                    name="user_id", join_key="id", value_type="ValueType.STRING"
+                )
+            ],
+            [
+                FeatureDefinition(name="feature_1", dtype="ValueType.STRING"),
+                FeatureDefinition(name="login_times"),
+                FeatureDefinition(name="logout_times", dtype="ValueType.INT"),
+            ],
+        ),
+    ],
+)
+def test_get_entities_and_features_from_sql(
+    test_sql, expected_entities, expected_features
+):
+    entities, features = feast._get_entities_and_features_from_sql(test_sql)
+    assert len(expected_entities) == len(entities)
+    assert len(expected_features) == len(features)
+
+    for idx in range(len(entities)):
+        assert entities[idx].dict() == expected_entities[idx].dict()
+
+    for idx in range(len(features)):
+        assert features[idx].dict() == expected_features[idx].dict()

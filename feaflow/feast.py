@@ -1,19 +1,22 @@
 import contextlib
 import logging
-import os.path
+import re
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, ContextManager, Dict, Iterator, Optional, Tuple
+from typing import Any, ContextManager, Dict, List, Optional, Tuple, Union
 
+import sqlparse
 import yaml
 from feast.errors import FeastProviderLoginError
 from feast.repo_config import RepoConfig, load_repo_config
 from feast.repo_operations import apply_total
 
+from feaflow.abstracts import FeaflowImmutableModel
 from feaflow.exceptions import NotSupportedFeature
-from feaflow.job_config import FeastConfig, JobConfig
+from feaflow.job_config import JobConfig
 from feaflow.project import Project
+from feaflow.sink.feature_view import FeatureViewSinkConfig
 from feaflow.utils import render_template
 
 logger = logging.getLogger(__name__)
@@ -68,6 +71,28 @@ def init(feaflow_project: Project) -> ContextManager[FeastProject]:
         sys.path.pop()
 
 
+class EntityDefinition(FeaflowImmutableModel):
+    name: str
+    value_type: str = "ValueType.UNKNOWN"
+    description: Optional[str] = None
+    join_key: Optional[str] = None
+    labels: Optional[str] = None
+
+
+class FeatureDefinition(FeaflowImmutableModel):
+    name: str
+    dtype: str = "ValueType.UNKNOWN"
+    labels: Optional[str] = None
+
+
+class FeatureViewDefinition(FeaflowImmutableModel):
+    name: str
+    entities: List[str]
+    ttl: str
+    features: Optional[List[FeatureDefinition]] = None
+    tags: Optional[str] = None
+
+
 def _generate_project_config(feaflow_project: Project) -> str:
     with open(TEMPLATE_DIR / "feature_store.yaml", "r") as tf:
         template_str = tf.read()
@@ -87,136 +112,124 @@ def _generate_project_declarations(feaflow_project: Project) -> str:
     with open(TEMPLATE_DIR / "declarations.py", "r") as tf:
         template_str = tf.read()
 
-    batch_sources: Dict[str, str] = {}
-    entities: Dict[str, str] = {}
-    feature_views: Dict[str, str] = {}
+    template_context = {"entity_defs": [], "feature_view_defs": []}
+
     jobs = feaflow_project.scan_jobs()
 
+    # TODO batch_source needed
+
     for job_config in jobs:
-        job_declarations = _generate_declarations_from_job_config(job_config)
-        if job_declarations:
-            (
-                _batch_source,
-                _entities,
-                _feature_view,
-            ) = job_declarations
+        if job_declarations := _get_definitions_from_job_config(job_config):
+            job_entities, job_feature_views = job_declarations
+            template_context["entity_defs"] += job_entities
+            template_context["feature_view_defs"] += job_feature_views
 
-            if _batch_source[0] in batch_sources:
-                logger.warning(
-                    f"BatchSource '{_batch_source[0]}' already exists, skipped."
-                )
-            else:
-                batch_sources[_batch_source[0]] = _batch_source[1]
-
-            for ek, ev in _entities.items():
-                if ek in entities:
-                    logger.warning(f"Entity '{ek}' already exists, skipped.")
-                else:
-                    entities[ek] = ev
-
-            if _feature_view[0] in feature_views:
-                logger.warning(
-                    f"FeatureView '{_feature_view[0]}' already exists, skipped."
-                )
-            else:
-                feature_views[_feature_view[0]] = _feature_view[1]
-
-    return str(
-        render_template(
-            template_str,
-            {
-                "batch_sources": batch_sources,
-                "entities": entities,
-                "feature_views": feature_views,
-            },
-        )
-    )
+    return str(render_template(template_str, template_context))
 
 
-def _generate_declarations_from_job_config(
+def _get_definitions_from_job_config(
     job_config: JobConfig,
-) -> Optional[Tuple[tuple, dict, tuple]]:
-    if job_config.feast is None:
+) -> Optional[Tuple[List[EntityDefinition], List[FeatureViewDefinition]]]:
+    if job_config.sinks is None:
         return None
-    feast_config = job_config.feast
 
-    fv_cfg = feast_config.feature_view
-    batch_source: Tuple[str, str]
-    entities: Dict[str, str] = {}
-    features: Dict[str, str] = {}
-    feature_view: Tuple[str, str]
-
-    # batch source starts
-    bs_key = _generate_hash_key(
-        "batch_source",
-        {"__class__": fv_cfg.batch_source.class_, **fv_cfg.batch_source.args},
+    fv_configs = list(
+        filter(lambda s: isinstance(s, FeatureViewSinkConfig), job_config.sinks)
     )
-    bs_args = _dict_to_func_args(fv_cfg.batch_source.args)
+    if not fv_configs:
+        return None
 
-    (
-        bs_module_name,
-        bs_class_name,
-    ) = fv_cfg.batch_source.class_.rsplit(".", 1)
-    bs_declaration = f"""\
-from {bs_module_name} import {bs_class_name}
-{bs_key} = {bs_class_name}(
-    {bs_args}
-)\
-"""
-    batch_source = (bs_key, bs_declaration)
+    job_entities = []
+    job_feature_views = []
 
-    # entity starts
-    for entity_config in fv_cfg.entities:
-        entity_key = entity_config.name
-        entity_args = entity_config.dict(exclude_none=True)
-        if "value_type" in entity_args:
-            entity_args["value_type"] = "repr__" + _str_to_feast_value_type(
-                entity_args["value_type"]
+    for fv_cfg in fv_configs:
+        assert isinstance(fv_cfg, FeatureViewSinkConfig)
+
+        entities_def, features_def = _get_entities_and_features_from_sql(
+            fv_cfg.ingest.from_
+        )
+        feature_view_def = FeatureViewDefinition(
+            name=fv_cfg.name,
+            entities=[ed.name for ed in entities_def],
+            ttl=repr(fv_cfg.ttl),
+            features=features_def if len(features_def) > 0 else None,
+            tags=_dict_to_str(fv_cfg.tags) if fv_cfg.tags else None,
+        )
+
+        job_entities += entities_def
+        job_feature_views.append(feature_view_def)
+
+    return job_entities, job_feature_views
+
+
+def _get_entities_and_features_from_sql(
+    sql: str,
+) -> Tuple[List[EntityDefinition], List[FeatureDefinition]]:
+    assert sql is not None and sql != ""
+
+    from sqlparse.sql import Comment, Identifier, IdentifierList
+    from sqlparse.tokens import Keyword, Name
+
+    entities_def = []
+    features_def = []
+
+    def parse_identifier(idt: Identifier) -> Union[EntityDefinition, FeatureDefinition]:
+        is_entity = False
+        idt_name = ""
+        entity_name = None
+        idt_type = "ValueType.UNKNOWN"
+        for token in idt.tokens:
+            if token.match(Name, None):
+                idt_name = token.value
+            elif isinstance(token, Identifier):
+                idt_name = token.value
+            elif isinstance(token, Comment):
+                comment = token.value
+                if _matches := re.search(
+                    r"(?:\/\*|,|--) *entity(?:: *?([^ \n\*,]+)|[, \n*$])",
+                    comment,
+                    re.IGNORECASE,
+                ):
+                    is_entity = True
+                    try:
+                        entity_name = _matches.group(1)
+                    except IndexError:
+                        entity_name = None
+
+                if _matches := re.search(
+                    r"(?:\/\*|,|--) *type: *?([^ \n\*]+)", comment, re.IGNORECASE
+                ):
+                    idt_type = _str_to_feast_value_type(_matches[1])
+
+        if is_entity:
+            return EntityDefinition(
+                name=entity_name if entity_name else idt_name,
+                value_type=idt_type,
+                join_key=idt_name,
             )
-        entity_args = _dict_to_func_args(entity_args)
+        else:
+            return FeatureDefinition(name=idt_name, dtype=idt_type)
 
-        entity_declaration = f"""\
-entity_{entity_key} = Entity(
-    {entity_args}
-)\
-"""
-        entities[entity_key] = entity_declaration
+    parsed = sqlparse.parse(sql)[0]
+    for token in parsed.tokens:
+        if isinstance(token, IdentifierList):
+            for sub_token in token.tokens:
+                if isinstance(sub_token, Identifier):
+                    _def = parse_identifier(sub_token)
+                    if isinstance(_def, EntityDefinition):
+                        entities_def.append(_def)
+                    else:
+                        features_def.append(_def)
+        elif isinstance(token, Identifier):
+            _def = parse_identifier(token)
+            if isinstance(_def, EntityDefinition):
+                entities_def.append(_def)
+            else:
+                features_def.append(_def)
+        elif token.match(Keyword, "FROM"):
+            break
 
-    # features starts
-    if fv_cfg.features:
-        for fe_cfg in fv_cfg.features:
-            fe_args = fe_cfg.dict(exclude_none=True)
-            if "dtype" in fe_args:
-                fe_args["dtype"] = "repr__" + _str_to_feast_value_type(fe_args["dtype"])
-            fe_args = _dict_to_func_args(fe_args)
-            fe_declaration = f"""\
-Feature(
-    {fe_args}
-)\
-"""
-
-            features[fe_cfg.name] = fe_declaration
-
-    # feature_view starts
-    fv_args = {
-        "name": fv_cfg.name,
-        "entities": list(entities.keys()),
-        "ttl": fv_cfg.ttl,
-    }
-    if len(features) > 0:
-        fv_args["features"] = [f"repr__{f}" for f in list(features.values())]
-    if fv_cfg.tags:
-        fv_args["tags"] = fv_cfg.tags
-    fv_args["batch_source"] = f"repr__{batch_source[0]}"
-    fv_args = _dict_to_func_args(fv_args)
-    feature_view_declaration = f"""\
-feature_view_{fv_cfg.name} = FeatureView(
-    {fv_args}
-)\
-"""
-    feature_view = (fv_cfg.name, feature_view_declaration)
-
-    return batch_source, entities, feature_view
+    return entities_def, features_def
 
 
 def _dict_to_func_args(_dict: dict) -> str:
@@ -233,6 +246,10 @@ def _dict_to_func_args(_dict: dict) -> str:
     return ", \n    ".join([f"{k}={wrap_arg(v)}" for k, v in _dict.items()])
 
 
+def _dict_to_str(_dict: Dict[str, str]) -> str:
+    return "{" + ", ".join([f'"{k}": "{v}"' for k, v in _dict.items()]) + "}"
+
+
 def _generate_hash_key(prefix: str, _dict: dict) -> str:
     """discussion about hashing a dict: https://stackoverflow.com/questions/5884066/hashing-a-dictionary"""
     hash_key = hash(frozenset(_dict))
@@ -240,32 +257,28 @@ def _generate_hash_key(prefix: str, _dict: dict) -> str:
     return f"{prefix}_{hash_key}"
 
 
-VALUE_TYPE_MAPPING = {
-    "UNKNOWN": "ValueType.UNKNOWN",
-    "BYTES": "ValueType.BYTES",
-    "STRING": "ValueType.STRING",
-    "INT32": "ValueType.INT32",
-    "INT": "ValueType.INT32",
-    "INT64": "ValueType.INT64",
-    "DOUBLE": "ValueType.DOUBLE",
-    "FLOAT": "ValueType.FLOAT",
-    "BOOL": "ValueType.BOOL",
-    "UNIX_TIMESTAMP": "ValueType.UNIX_TIMESTAMP",
-    "BYTES_LIST": "ValueType.BYTES_LIST",
-    "STRING_LIST": "ValueType.STRING_LIST",
-    "INT32_LIST": "ValueType.INT32_LIST",
-    "INT64_LIST": "ValueType.INT64_LIST",
-    "DOUBLE_LIST": "ValueType.DOUBLE_LIST",
-    "FLOAT_LIST": "ValueType.FLOAT_LIST",
-    "BOOL_LIST": "ValueType.BOOL_LIST",
-    "UNIX_TIMESTAMP_LIST": "ValueType.UNIX_TIMESTAMP_LIST",
-    "NULL": "ValueType.NULL",
-}
-
-
 def _str_to_feast_value_type(type_str: str) -> str:
-    type_str = type_str.upper()
-    if type_str not in VALUE_TYPE_MAPPING:
-        raise ValueError(f"Type {type_str} is not a valid value type in Feast")
+    """
+    available value types:
+        "UNKNOWN": "ValueType.UNKNOWN",
+        "BYTES": "ValueType.BYTES",
+        "STRING": "ValueType.STRING",
+        "INT32": "ValueType.INT32",
+        "INT": "ValueType.INT32",
+        "INT64": "ValueType.INT64",
+        "DOUBLE": "ValueType.DOUBLE",
+        "FLOAT": "ValueType.FLOAT",
+        "BOOL": "ValueType.BOOL",
+        "UNIX_TIMESTAMP": "ValueType.UNIX_TIMESTAMP",
+        "BYTES_LIST": "ValueType.BYTES_LIST",
+        "STRING_LIST": "ValueType.STRING_LIST",
+        "INT32_LIST": "ValueType.INT32_LIST",
+        "INT64_LIST": "ValueType.INT64_LIST",
+        "DOUBLE_LIST": "ValueType.DOUBLE_LIST",
+        "FLOAT_LIST": "ValueType.FLOAT_LIST",
+        "BOOL_LIST": "ValueType.BOOL_LIST",
+        "UNIX_TIMESTAMP_LIST": "ValueType.UNIX_TIMESTAMP_LIST",
+        "NULL": "ValueType.NULL",
+    """
 
-    return VALUE_TYPE_MAPPING[type_str]
+    return f"ValueType.{type_str.upper()}"

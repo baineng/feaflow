@@ -14,6 +14,11 @@ class ConfigLoadError(FeaflowException):
         super().__init__(f"Could not load config file '{config_path}', {reason}")
 
 
+class ConfigurationError(FeaflowException):
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+
 class ClassImportError(Exception):
     def __init__(self, class_name: str, extra_info: str = ""):
         super().__init__(f"Could not import class '{class_name}', {extra_info}")

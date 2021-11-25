@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class FeatureViewIngestConfig(FeaflowImmutableModel):
     _template_attrs: Tuple[str] = ("from_", "into_table")
 
-    from_: Optional[str] = Field(alias="from", default=None)
+    from_: str = Field(alias="from")
     into_table: str
     store_format: TableSinkFormat = TableSinkFormat.PARQUET
 
@@ -26,6 +26,7 @@ class FeatureViewSinkConfig(SinkConfig):
     name: str
     ttl: timedelta = timedelta(seconds=(24 * 60 * 60))  # 24 hours
     ingest: FeatureViewIngestConfig
+    tags: Optional[Dict[str, str]] = None
 
 
 class FeatureViewSink(Sink):
