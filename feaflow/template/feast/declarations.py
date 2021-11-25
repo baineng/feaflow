@@ -1,6 +1,23 @@
 import datetime
 
 from feast import Entity, Feature, FeatureView, ValueType
+import importlib
+
+def get_class_by_name(class_name):
+    module_name, class_name = class_name.rsplit(".", 1)
+    module = importlib.import_module(module_name)
+    return getattr(module, class_name)
+
+# DataSources
+{% for ds in data_source_defs %}
+{{ ds.id }} = get_class_by_name("{{ ds.class_name }}")(
+    table="{{ ds.table_name }}",
+    {% if ds.event_timestamp_column %}event_timestamp_column={{ ds.event_timestamp_column }},{% endif %}
+    {% if ds.created_timestamp_column %}created_timestamp_column={{ ds.created_timestamp_column }},{% endif %}
+    {% if ds.field_mapping %}field_mapping={{ ds.field_mapping }},{% endif %}
+    {% if ds.date_partition_column %}date_partition_column={{ ds.date_partition_column }},{% endif %}
+)
+{% endfor %}
 
 # Entities
 {% for entity in entity_defs %}
@@ -25,7 +42,9 @@ feature_view_{{ loop.index }} = FeatureView(
             dtype={{ fe.dtype }},
             {% if fe.labels %}labels={{ fv.labels }},{% endif %}
         ),
-    {% endfor %}]{% endif %}
+    {% endfor %}],{% endif %}
+    {% if fv.batch_source %}batch_source={{ fv.batch_source }},{% endif %}
+    {% if fv.stream_source %}stream_source={{ fv.stream_source }},{% endif %}
     {% if fv.tags %}tags={{ fv.tags }},{% endif %}
 )
 {% endfor %}

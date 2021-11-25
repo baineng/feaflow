@@ -71,6 +71,16 @@ def init(feaflow_project: Project) -> ContextManager[FeastProject]:
         sys.path.pop()
 
 
+class DataSourceDefinition(FeaflowImmutableModel):
+    id: str
+    class_name: str
+    table_name: str
+    event_timestamp_column: Optional[str] = None
+    created_timestamp_column: Optional[str] = None
+    field_mapping: Optional[str] = None
+    date_partition_column: Optional[str] = None
+
+
 class EntityDefinition(FeaflowImmutableModel):
     name: str
     value_type: str = "ValueType.UNKNOWN"
@@ -90,6 +100,8 @@ class FeatureViewDefinition(FeaflowImmutableModel):
     entities: List[str]
     ttl: str
     features: Optional[List[FeatureDefinition]] = None
+    batch_source: Optional[str] = None
+    stream_source: Optional[str] = None
     tags: Optional[str] = None
 
 
@@ -112,24 +124,41 @@ def _generate_project_declarations(feaflow_project: Project) -> str:
     with open(TEMPLATE_DIR / "declarations.py", "r") as tf:
         template_str = tf.read()
 
-    template_context = {"entity_defs": [], "feature_view_defs": []}
+    template_context = {
+        "data_source_defs": [],
+        "entity_defs": [],
+        "feature_view_defs": [],
+    }
 
     jobs = feaflow_project.scan_jobs()
 
     # TODO batch_source needed
 
     for job_config in jobs:
-        if job_declarations := _get_definitions_from_job_config(job_config):
-            job_entities, job_feature_views = job_declarations
-            template_context["entity_defs"] += job_entities
-            template_context["feature_view_defs"] += job_feature_views
+        if job_declarations := _get_definitions_from_job_config(
+            feaflow_project, job_config
+        ):
+            (
+                job_data_source_defs,
+                job_entity_defs,
+                job_feature_view_defs,
+            ) = job_declarations
+
+            template_context["data_source_defs"] += job_data_source_defs
+            template_context["entity_defs"] += job_entity_defs
+            template_context["feature_view_defs"] += job_feature_view_defs
 
     return str(render_template(template_str, template_context))
 
 
 def _get_definitions_from_job_config(
+    feaflow_project: Project,
     job_config: JobConfig,
-) -> Optional[Tuple[List[EntityDefinition], List[FeatureViewDefinition]]]:
+) -> Optional[
+    Tuple[
+        List[DataSourceDefinition], List[EntityDefinition], List[FeatureViewDefinition]
+    ]
+]:
     if job_config.sinks is None:
         return None
 
@@ -139,27 +168,44 @@ def _get_definitions_from_job_config(
     if not fv_configs:
         return None
 
-    job_entities = []
-    job_feature_views = []
+    job_data_source_defs = []
+    job_entity_defs = []
+    job_feature_view_defs = []
 
-    for fv_cfg in fv_configs:
+    for fv_cfg_idx, fv_cfg in enumerate(fv_configs):
         assert isinstance(fv_cfg, FeatureViewSinkConfig)
+        ds_cfg = fv_cfg.data_source
 
-        entities_def, features_def = _get_entities_and_features_from_sql(
-            fv_cfg.ingest.from_
+        data_source_id = f"data_source_{job_config.name}_{fv_cfg_idx+1}"
+        data_source_def = DataSourceDefinition(
+            id=data_source_id,
+            class_name=feaflow_project.config.feast_project_config.data_source_class,
+            table_name=ds_cfg.store_table,
+            event_timestamp_column=ds_cfg.event_timestamp_column,
+            created_timestamp_column=ds_cfg.created_timestamp_column,
+            field_mapping=_dict_to_str(ds_cfg.field_mapping)
+            if ds_cfg.field_mapping
+            else None,
+            date_partition_column=ds_cfg.date_partition_column,
+        )
+
+        entity_defs, feature_defs = _get_entities_and_features_from_sql(
+            ds_cfg.select_sql
         )
         feature_view_def = FeatureViewDefinition(
             name=fv_cfg.name,
-            entities=[ed.name for ed in entities_def],
+            entities=[ed.name for ed in entity_defs],
             ttl=repr(fv_cfg.ttl),
-            features=features_def if len(features_def) > 0 else None,
+            features=feature_defs if len(feature_defs) > 0 else None,
+            batch_source=data_source_id,
             tags=_dict_to_str(fv_cfg.tags) if fv_cfg.tags else None,
         )
 
-        job_entities += entities_def
-        job_feature_views.append(feature_view_def)
+        job_data_source_defs.append(data_source_def)
+        job_entity_defs += entity_defs
+        job_feature_view_defs.append(feature_view_def)
 
-    return job_entities, job_feature_views
+    return job_data_source_defs, job_entity_defs, job_feature_view_defs
 
 
 def _get_entities_and_features_from_sql(
@@ -170,8 +216,8 @@ def _get_entities_and_features_from_sql(
     from sqlparse.sql import Comment, Identifier, IdentifierList
     from sqlparse.tokens import Keyword, Name
 
-    entities_def = []
-    features_def = []
+    entity_defs = []
+    feature_defs = []
 
     def parse_identifier(idt: Identifier) -> Union[EntityDefinition, FeatureDefinition]:
         is_entity = False
@@ -217,19 +263,19 @@ def _get_entities_and_features_from_sql(
                 if isinstance(sub_token, Identifier):
                     _def = parse_identifier(sub_token)
                     if isinstance(_def, EntityDefinition):
-                        entities_def.append(_def)
+                        entity_defs.append(_def)
                     else:
-                        features_def.append(_def)
+                        feature_defs.append(_def)
         elif isinstance(token, Identifier):
             _def = parse_identifier(token)
             if isinstance(_def, EntityDefinition):
-                entities_def.append(_def)
+                entity_defs.append(_def)
             else:
-                features_def.append(_def)
+                feature_defs.append(_def)
         elif token.match(Keyword, "FROM"):
             break
 
-    return entities_def, features_def
+    return entity_defs, feature_defs
 
 
 def _dict_to_func_args(_dict: dict) -> str:
@@ -281,4 +327,8 @@ def _str_to_feast_value_type(type_str: str) -> str:
         "NULL": "ValueType.NULL",
     """
 
-    return f"ValueType.{type_str.upper()}"
+    type_str = type_str.upper()
+    if type_str == "INT":
+        type_str = "INT32"
+
+    return f"ValueType.{type_str}"

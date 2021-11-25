@@ -16,3 +16,4 @@ feast:
     path: data/online_store.db
   offline_store:
     type: file
+  data_source_class: tests.mock.hive_source.HiveSource

@@ -2,21 +2,25 @@ import logging
 from datetime import timedelta
 from typing import Any, Dict, Optional, Tuple
 
-from pydantic import Field
 from typing_extensions import Literal
 
 from feaflow.abstracts import FeaflowImmutableModel, Sink, SinkConfig
-from feaflow.sink.table import TableSinkFormat
+from feaflow.sink.table import TableSinkFormat, TableSinkMode
 
 logger = logging.getLogger(__name__)
 
 
-class FeatureViewIngestConfig(FeaflowImmutableModel):
-    _template_attrs: Tuple[str] = ("from_", "into_table")
+class FeatureViewDataSourceConfig(FeaflowImmutableModel):
+    _template_attrs: Tuple[str] = ("select_sql",)
 
-    from_: str = Field(alias="from")
-    into_table: str
+    select_sql: str
+    store_table: str
+    store_mode: TableSinkMode = TableSinkMode.APPEND
     store_format: TableSinkFormat = TableSinkFormat.PARQUET
+    event_timestamp_column: str
+    created_timestamp_column: Optional[str] = None
+    field_mapping: Optional[Dict[str, str]] = None
+    date_partition_column: Optional[str] = None
 
 
 class FeatureViewSinkConfig(SinkConfig):
@@ -25,8 +29,8 @@ class FeatureViewSinkConfig(SinkConfig):
 
     name: str
     ttl: timedelta = timedelta(seconds=(24 * 60 * 60))  # 24 hours
-    ingest: FeatureViewIngestConfig
     tags: Optional[Dict[str, str]] = None
+    data_source: FeatureViewDataSourceConfig
 
 
 class FeatureViewSink(Sink):

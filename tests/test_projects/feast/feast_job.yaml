@@ -39,35 +39,12 @@ sinks:
   - type: feature_view
     name: fview_1
     ttl: 3600
-    ingest:
-      from: |-
+    data_source:
+      select_sql: |-
         SELECT id /* entity: user_id */,
-               send_message_amount as send_amount,
-               login_times,
-               logout_times
+               send_message_amount as send_amount /* type: int */,
+               login_times /* type: int */,
+               logout_times /* type: int */
         FROM {{ compute_0 }}
-      into_table: test_sink_table
-
-#feast:
-#  feature_view:
-#    name: fview_1
-#    ttl: 3600 # seconds
-#    batch_source:
-#      class: feast.FileSource
-#      args:
-#        path: "%PARQUET_PATH%"
-#        event_timestamp_column: event_timestamp
-#        created_timestamp_column: created
-#    entities:
-#      - name: user_id
-#        join_key: id
-#        type: int
-#        description: user's id
-#        labels:
-#          fview_1_id: 1
-#    features:
-#      - name: send_message_amount
-#        type: int
-#      - name: signup_times
-#        type: int
-#      - login_times
+      store_table: test_sink_table
+      event_timestamp_column: id

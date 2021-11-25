@@ -26,6 +26,7 @@ class FeastProjectConfig(FeaflowModel):
     registry: Union[StrictStr, Dict[str, Any]] = "data/registry.db"
     online_store: Any
     offline_store: Any
+    data_source_class: str
 
 
 class ProjectConfig(FeaflowModel):

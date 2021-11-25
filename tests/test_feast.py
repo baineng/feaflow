@@ -29,21 +29,6 @@ def test_config(project_feast):
     assert feature_view_config.ingest.into_table == "test_sink_table"
 
 
-# declar = feast._generate_project_declarations()
-# print(declar)
-
-# feast -> feature_view
-#          require: table name
-
-# feast materialize
-
-# feast apply
-
-# feast generate project.yml
-
-# feast serve?
-
-
 def test_init(project_feast):
     with feast.init(project_feast) as feast_project:
         repo_config = feast_project.load_repo_config()
@@ -59,7 +44,6 @@ def test_init(project_feast):
 def test_apply(project_feast):
     with feast.init(project_feast) as feast_project:
         feast_project.apply()
-        print(1)
 
 
 def test_generate_project_declarations(project_feast):
