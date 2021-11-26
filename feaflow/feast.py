@@ -15,7 +15,7 @@ from feast.repo_config import RepoConfig, load_repo_config
 from feast.repo_operations import apply_total
 
 from feaflow.abstracts import FeaflowImmutableModel
-from feaflow.exceptions import NotSupportedFeature
+from feaflow.exceptions import ConfigurationError, NotSupportedFeature
 from feaflow.job_config import JobConfig
 from feaflow.project import Project
 from feaflow.sink.feature_view import FeatureViewSinkConfig
@@ -108,23 +108,23 @@ class DataSourceDefinition(FeaflowImmutableModel):
     class_name: str
     event_timestamp_column: Optional[str] = None
     created_timestamp_column: Optional[str] = None
-    field_mapping: Optional[str] = None
+    field_mapping: Optional[Dict[str, str]] = None
     date_partition_column: Optional[str] = None
     other_arguments: Optional[Dict[str, str]] = None
 
 
 class EntityDefinition(FeaflowImmutableModel):
     name: str
-    value_type: str = "ValueType.UNKNOWN"
+    value_type: str
     description: Optional[str] = None
     join_key: Optional[str] = None
-    labels: Optional[str] = None
+    labels: Optional[Dict[str, str]] = None
 
 
 class FeatureDefinition(FeaflowImmutableModel):
     name: str
-    dtype: str = "ValueType.UNKNOWN"
-    labels: Optional[str] = None
+    dtype: str
+    labels: Optional[Dict[str, str]] = None
 
 
 class FeatureViewDefinition(FeaflowImmutableModel):
@@ -134,7 +134,7 @@ class FeatureViewDefinition(FeaflowImmutableModel):
     features: Optional[List[FeatureDefinition]] = None
     batch_source: Optional[str] = None
     stream_source: Optional[str] = None
-    tags: Optional[str] = None
+    tags: Optional[Dict[str, str]] = None
 
 
 def _generate_project_config(feaflow_project: Project) -> str:
@@ -215,9 +215,7 @@ def _get_definitions_from_job_config(
             class_name=ds_cfg.class_name,
             event_timestamp_column=ds_cfg.event_timestamp_column,
             created_timestamp_column=ds_cfg.created_timestamp_column,
-            field_mapping=_dict_to_str(ds_cfg.field_mapping)
-            if ds_cfg.field_mapping
-            else None,
+            field_mapping=ds_cfg.field_mapping,
             date_partition_column=ds_cfg.date_partition_column,
             other_arguments={k: repr(v) for k, v in ds_cfg.other_arguments.items()}
             if ds_cfg.other_arguments
@@ -233,7 +231,7 @@ def _get_definitions_from_job_config(
             ttl=repr(fv_cfg.ttl),
             features=feature_defs if len(feature_defs) > 0 else None,
             batch_source=datasource_id,
-            tags=_dict_to_str(fv_cfg.tags) if fv_cfg.tags else None,
+            tags=fv_cfg.tags,
         )
 
         job_datasource_defs.append(datasource_def)
@@ -254,11 +252,16 @@ def _get_entities_and_features_from_sql(
     entity_defs = []
     feature_defs = []
 
-    def parse_identifier(idt: Identifier) -> Union[EntityDefinition, FeatureDefinition]:
-        is_entity = False
+    def parse_identifier(
+        idt: Identifier,
+    ) -> Optional[Union[EntityDefinition, FeatureDefinition]]:
+        is_feature = False
         idt_name = ""
+        idt_type = FEAST_VALUETYPE_MAPPING["UNKNOWN"]
+        idt_labels = {}
+        is_entity = False
         entity_name = None
-        idt_type = "ValueType.UNKNOWN"
+
         for token in idt.tokens:
             if token.match(Name, None):
                 idt_name = token.value
@@ -266,47 +269,69 @@ def _get_entities_and_features_from_sql(
                 idt_name = token.value
             elif isinstance(token, Comment):
                 comment = token.value
-                if _matches := re.search(
-                    r"(?:\/\*|,|--) *entity(?:: *?([^ \n\*,]+)|[, \n*$])",
-                    comment,
-                    re.IGNORECASE,
-                ):
-                    is_entity = True
-                    try:
-                        entity_name = _matches.group(1)
-                    except IndexError:
-                        entity_name = None
+                if _matches := re.match(r"\s*\/\*\s*(.*?)\s*\*\/", comment):
+                    if _matches.groups() and _matches.group(1):
+                        idt_defs = re.split(r",\s*", _matches.group(1))
+                        if _entity_matches := re.match(
+                            r"entity(?:\s*?:\s*?([^\s]+)|$)", idt_defs[0]
+                        ):  # If it was a Entity
+                            is_entity = True
+                            if _entity_matches.groups():
+                                entity_name = _entity_matches.group(1)
+                            if len(idt_defs) == 1:
+                                raise ConfigurationError(
+                                    f"Need specify a type for Entity `{idt_name}`."
+                                )
+                            if idt_defs[1].upper() not in FEAST_VALUETYPE_MAPPING:
+                                raise ConfigurationError(
+                                    f"The type `{idt_defs[1]}` of Entity `{idt_name}` is not supported."
+                                )
+                            idt_type = _str_to_feast_value_type(idt_defs[1])
+                            if len(idt_defs) > 2:
+                                for i in range(2, len(idt_defs)):
+                                    label_k, label_v = idt_defs[i].split(":", 1)
+                                    idt_labels[label_k.strip()] = label_v.strip()
+                        else:  # If it was a Feature
+                            is_feature = True
+                            if idt_defs[0].upper() not in FEAST_VALUETYPE_MAPPING:
+                                raise ConfigurationError(
+                                    f"The type `{idt_defs[0]}` of Feature `{idt_name}` is not supported."
+                                )
+                            idt_type = _str_to_feast_value_type(idt_defs[0])
+                            if len(idt_defs) > 1:
+                                for i in range(1, len(idt_defs)):
+                                    label_k, label_v = idt_defs[i].split(":", 1)
+                                    idt_labels[label_k.strip()] = label_v.strip()
 
-                if _matches := re.search(
-                    r"(?:\/\*|,|--) *type: *?([^ \n\*]+)", comment, re.IGNORECASE
-                ):
-                    idt_type = _str_to_feast_value_type(_matches[1])
+        if not idt_labels:
+            idt_labels = None
 
         if is_entity:
             return EntityDefinition(
                 name=entity_name if entity_name else idt_name,
                 value_type=idt_type,
                 join_key=idt_name,
+                labels=idt_labels,
             )
-        else:
-            return FeatureDefinition(name=idt_name, dtype=idt_type)
+        elif is_feature:
+            return FeatureDefinition(name=idt_name, dtype=idt_type, labels=idt_labels)
 
     parsed = sqlparse.parse(sql)[0]
     for token in parsed.tokens:
         if isinstance(token, IdentifierList):
             for sub_token in token.tokens:
                 if isinstance(sub_token, Identifier):
-                    _def = parse_identifier(sub_token)
-                    if isinstance(_def, EntityDefinition):
-                        entity_defs.append(_def)
-                    else:
-                        feature_defs.append(_def)
+                    if _def := parse_identifier(sub_token):
+                        if isinstance(_def, EntityDefinition):
+                            entity_defs.append(_def)
+                        else:
+                            feature_defs.append(_def)
         elif isinstance(token, Identifier):
-            _def = parse_identifier(token)
-            if isinstance(_def, EntityDefinition):
-                entity_defs.append(_def)
-            else:
-                feature_defs.append(_def)
+            if _def := parse_identifier(token):
+                if isinstance(_def, EntityDefinition):
+                    entity_defs.append(_def)
+                else:
+                    feature_defs.append(_def)
         elif token.match(Keyword, "FROM"):
             break
 
@@ -327,7 +352,7 @@ def _dict_to_func_args(_dict: dict) -> str:
     return ", \n    ".join([f"{k}={wrap_arg(v)}" for k, v in _dict.items()])
 
 
-def _dict_to_str(_dict: Dict[str, str]) -> str:
+def _get_repr_of_dict(_dict: Dict[str, str]) -> str:
     return "{" + ", ".join([f'"{k}": "{v}"' for k, v in _dict.items()]) + "}"
 
 
@@ -338,32 +363,33 @@ def _generate_hash_key(prefix: str, _dict: dict) -> str:
     return f"{prefix}_{hash_key}"
 
 
+FEAST_VALUETYPE_MAPPING = {
+    "UNKNOWN": "ValueType.UNKNOWN",
+    "BYTES": "ValueType.BYTES",
+    "STRING": "ValueType.STRING",
+    "INT32": "ValueType.INT32",
+    "INT": "ValueType.INT32",
+    "INT64": "ValueType.INT64",
+    "DOUBLE": "ValueType.DOUBLE",
+    "FLOAT": "ValueType.FLOAT",
+    "BOOL": "ValueType.BOOL",
+    "UNIX_TIMESTAMP": "ValueType.UNIX_TIMESTAMP",
+    "BYTES_LIST": "ValueType.BYTES_LIST",
+    "STRING_LIST": "ValueType.STRING_LIST",
+    "INT32_LIST": "ValueType.INT32_LIST",
+    "INT64_LIST": "ValueType.INT64_LIST",
+    "DOUBLE_LIST": "ValueType.DOUBLE_LIST",
+    "FLOAT_LIST": "ValueType.FLOAT_LIST",
+    "BOOL_LIST": "ValueType.BOOL_LIST",
+    "UNIX_TIMESTAMP_LIST": "ValueType.UNIX_TIMESTAMP_LIST",
+    "NULL": "ValueType.NULL",
+}
+
+
 def _str_to_feast_value_type(type_str: str) -> str:
-    """
-    available value types:
-        "UNKNOWN": "ValueType.UNKNOWN",
-        "BYTES": "ValueType.BYTES",
-        "STRING": "ValueType.STRING",
-        "INT32": "ValueType.INT32",
-        "INT": "ValueType.INT32",
-        "INT64": "ValueType.INT64",
-        "DOUBLE": "ValueType.DOUBLE",
-        "FLOAT": "ValueType.FLOAT",
-        "BOOL": "ValueType.BOOL",
-        "UNIX_TIMESTAMP": "ValueType.UNIX_TIMESTAMP",
-        "BYTES_LIST": "ValueType.BYTES_LIST",
-        "STRING_LIST": "ValueType.STRING_LIST",
-        "INT32_LIST": "ValueType.INT32_LIST",
-        "INT64_LIST": "ValueType.INT64_LIST",
-        "DOUBLE_LIST": "ValueType.DOUBLE_LIST",
-        "FLOAT_LIST": "ValueType.FLOAT_LIST",
-        "BOOL_LIST": "ValueType.BOOL_LIST",
-        "UNIX_TIMESTAMP_LIST": "ValueType.UNIX_TIMESTAMP_LIST",
-        "NULL": "ValueType.NULL",
-    """
+    """converts Feaflow simply value type to Feast value type"""
 
-    type_str = type_str.upper()
-    if type_str == "INT":
-        type_str = "INT32"
+    if type_str.upper() not in FEAST_VALUETYPE_MAPPING:
+        raise ValueError(f"Unsupported type {type_str}")
 
-    return f"ValueType.{type_str}"
+    return FEAST_VALUETYPE_MAPPING[type_str.upper()]

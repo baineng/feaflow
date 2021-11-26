@@ -11,6 +11,7 @@ from feaflow.feast import (
     _generate_project_declarations,
 )
 from feaflow.sink.feature_view import FeatureViewSinkConfig
+from feaflow.utils import construct_template_context
 
 
 def test_config(project_feast):
@@ -26,7 +27,7 @@ def test_config(project_feast):
     assert type(feature_view_config) == FeatureViewSinkConfig
     assert feature_view_config.name == "fview_1"
     assert feature_view_config.ttl == timedelta(seconds=3600)
-    assert feature_view_config.ingest.into_table == "test_sink_table"
+    assert feature_view_config.ingest.store_table == "feast_job1_feature_view"
 
 
 def test_init(project_feast):
@@ -39,6 +40,11 @@ def test_init(project_feast):
         assert repo_config.repo_path == feast_project.feast_project_dir
         assert type(repo_config.online_store) == SqliteOnlineStoreConfig
         assert type(repo_config.offline_store) == FileOfflineStoreConfig
+
+
+def test_generate_project_declarations(project_feast):
+    project_defs = _generate_project_declarations(project_feast)
+    print(project_defs)
 
 
 @pytest.fixture()
@@ -58,9 +64,26 @@ def test_materialize(project_feast_applied):
     )
 
 
-def test_generate_project_declarations(project_feast):
-    project_defs = _generate_project_declarations(project_feast)
-    print(project_defs)
+@pytest.mark.integration
+def test_run_feast_job(spark_exec_env, project_feast):
+    feast_job = project_feast.get_job("feast_job1")
+
+    execution_date = datetime.utcnow()
+    template_context = construct_template_context(
+        project_feast, feast_job.config, execution_date
+    )
+    spark_exec_env.engine_session.run(feast_job, execution_date, template_context)
+
+    sink_df = spark_exec_env.spark_session.table("feast_job1_feature_view")
+    real = sink_df.toPandas()
+    pass
+    # assert_frame_equal(
+    #     expected.sort_values(by=["title"]).reset_index(drop=True)[
+    #         sorted(expected.columns)
+    #     ],
+    #     real.sort_values(by=["title"]).reset_index(drop=True)[sorted(real.columns)],
+    #     check_dtype=False,
+    # )
 
 
 @pytest.mark.parametrize(
@@ -68,36 +91,54 @@ def test_generate_project_declarations(project_feast):
     [
         (
             """
-            SELECT id /*entity, type: string*/,
-                   send_message_amount/* type: string*/,
-                   login_times,
-                   logout_times
+            SELECT id /*entity, string*/,
+                   send_message_amount/* string*/,
+                   login_times /*int, category: user, type: login*/,
+                   logout_times /*float, category: user*/,
+                   published
             FROM compute_0    
             """,
             [EntityDefinition(name="id", join_key="id", value_type="ValueType.STRING")],
             [
                 FeatureDefinition(name="send_message_amount", dtype="ValueType.STRING"),
-                FeatureDefinition(name="login_times"),
-                FeatureDefinition(name="logout_times"),
+                FeatureDefinition(
+                    name="login_times",
+                    dtype="ValueType.INT32",
+                    labels={"category": "user", "type": "login"},
+                ),
+                FeatureDefinition(
+                    name="logout_times",
+                    dtype="ValueType.FLOAT",
+                    labels={"category": "user"},
+                ),
             ],
         ),
         (
             """
-            SELECT id /* entity: user_id, type: string */,
-                   send_message_amount as feature_1 /* type: string */,
-                   login_times,
-                   logout_times /* type: int */
+            SELECT id /* entity: user_id, string, category: user, type: id */,
+                   send_message_amount as feature_1 /* string */,
+                   login_times /* int, type: login */,
+                   logout_times /* float */,
+                   published,
+                   event_time
             FROM compute_0    
             """,
             [
                 EntityDefinition(
-                    name="user_id", join_key="id", value_type="ValueType.STRING"
+                    name="user_id",
+                    join_key="id",
+                    value_type="ValueType.STRING",
+                    labels={"category": "user", "type": "id"},
                 )
             ],
             [
                 FeatureDefinition(name="feature_1", dtype="ValueType.STRING"),
-                FeatureDefinition(name="login_times"),
-                FeatureDefinition(name="logout_times", dtype="ValueType.INT"),
+                FeatureDefinition(
+                    name="login_times",
+                    dtype="ValueType.INT32",
+                    labels={"type": "login"},
+                ),
+                FeatureDefinition(name="logout_times", dtype="ValueType.FLOAT"),
             ],
         ),
     ],

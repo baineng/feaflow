@@ -22,6 +22,7 @@ from feaflow.engine import (
 )
 from feaflow.exceptions import EngineExecuteError, EngineInitError
 from feaflow.job import Job
+from feaflow.sink.feature_view import FeatureViewSink
 from feaflow.sink.table import TableSink
 from feaflow.source.pandas import PandasDataFrameSource
 from feaflow.source.query import QuerySource
@@ -62,6 +63,7 @@ class SparkEngineSession(EngineSession):
             PandasDataFrameSourceHandler,
             SqlComputeHandler,
             TableSinkHandler,
+            FeatureViewSinkHandler,
         ]
         logger.info("Setting handlers for the session: %s", handlers)
         self.set_handlers(handlers)
@@ -373,5 +375,58 @@ class TableSinkHandler(ComponentHandler):
                     partition_cols,
                 )
                 writer.saveAsTable(sink_table_name)
+
+        return SinkTask(execution_func=execution_func)
+
+
+class FeatureViewSinkHandler(ComponentHandler):
+    @classmethod
+    def can_handle(cls, comp: Component) -> bool:
+        result = isinstance(comp, FeatureViewSink)
+        logger.debug(
+            "Check if FeatureViewSink could handle the component '%s', result is %s",
+            comp,
+            result,
+        )
+        return result
+
+    @classmethod
+    def handle(cls, sink: FeatureViewSink) -> SinkTask:
+        logger.info("FeatureViewSinkHandler is handling sink '%s'", sink.type)
+        assert isinstance(sink, FeatureViewSink)
+
+        def execution_func(exec_env: SparkExecutionEnvironment):
+            ingest_cfg = sink.get_ingest_config(exec_env.template_context)
+            datasource_cfg = sink.get_datasource_config(exec_env.template_context)
+
+            select_sql = ingest_cfg.select_sql
+            partition_col = datasource_cfg.date_partition_column
+            ingest_table = ingest_cfg.store_table
+            store_format = ingest_cfg.store_format
+
+            spark = exec_env.spark_session
+            logger.info("Ingesting to FeatureViewSink by sql: \n%s", select_sql)
+            select_df = spark.sql(select_sql)
+            writer: DataFrameWriter = select_df.write.mode(ingest_cfg.store_mode.value)
+
+            if spark._jsparkSession.catalog().tableExists(ingest_table):
+                logger.info("Inserting into sink table '%s'", ingest_table)
+                # if sink table exists, just inert into there
+                spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+                writer.insertInto(ingest_table)
+                # may use spark sql "insert overwrite table ... partion (...)" in the future
+            else:
+                # otherwise create the sink table
+                writer = writer.format(store_format)
+                if partition_col:
+                    writer = writer.partitionBy(partition_col)
+                logger.info(
+                    "Sink table '%s' does not exist, creating the table and inserting data into it. "
+                    "format: '%s', partition: '%s'",
+                    ingest_table,
+                    store_format,
+                    partition_col,
+                )
+                writer.saveAsTable(ingest_table)
 
         return SinkTask(execution_func=execution_func)

@@ -8,32 +8,35 @@ scheduler:
 sources:
   - type: pandas
     dict:
-      id: [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010]
-      title: ["message.send", "user.login", "user.signup", "user.logout", "message.send", "user.login", "user.signup", "user.logout", "user.signup", "user.logout"]
+      id: [2010, 2009, 2008, 2007, 2006, 2005, 2004, 2003, 2002, 2001]
+      title: ["image.upload", "image.like", "image.upload", "user.poke", "image.upload", "image.like", "user.poke", "user.logout", "profile.visit", "membership.pay"]
       published: ["2021-09-10", "2021-09-11", "2021-09-12", "2021-09-13", "2021-09-14", "2021-09-15", "2021-09-16", "2021-09-17", "2021-09-18", "2021-09-19"]
 
   - type: pandas
     file:
       type: csv
-      path: "{{ project_root }}/../data/pandas_df1.csv"
+      path: "{{ project_root }}/../../data/pandas_df1.csv"
       args:
         index_col: 0
 
 computes:
   - type: sql
     sql: |-
-      SELECT id,
-             SUM(CASE WHEN title="message.send" THEN 1 ELSE 0) send_message_amount,
-             SUM(CASE WHEN title="user.signup" THEN 1 ELSE 0) signup_times,
-             SUM(CASE WHEN title="user.login" THEN 1 ELSE 0) login_times,`
-             SUM(CASE WHEN title="user.logout" THEN 1 ELSE 0) logout_times,
-             "{{ ts }}" timestamp
+      SELECT published,
+             id,
+             SUM(CASE WHEN title="image.upload" THEN 1 ELSE 0 END) image_upload_amount,
+             SUM(CASE WHEN title="image.like" THEN 1 ELSE 0 END) image_like_amount,
+             SUM(CASE WHEN title="user.poke" THEN 1 ELSE 0 END) user_poke_times,
+             SUM(CASE WHEN title="user.logout" THEN 1 ELSE 0 END) user_logout_times,
+             SUM(CASE WHEN title="profile.visit" THEN 1 ELSE 0 END) profile_visit_times,
+             SUM(CASE WHEN title="membership.pay" THEN 1 ELSE 0 END) membership_pay_times,
+             "{{ ts }}" cal_time
       FROM (
         SELECT * FROM {{ source_0 }}
         UNION ALL
         SELECT * FROM {{ source_1 }}
       ) t
-      GROUP BY title
+      GROUP BY 1, 2
 
 sinks:
   - type: feature_view
@@ -41,13 +44,26 @@ sinks:
     ttl: 3600
     ingest:
       select_sql: |-
-        SELECT id /* entity: user_id */,
-               send_message_amount as send_amount /* type: int */,
-               login_times /* type: int */,
-               logout_times /* type: int */
+        SELECT id /* entity: user_id, int, category: user */,
+               image_upload_amount as upload_amount /* int, category: image */,
+               image_like_amount /* int64 */,
+               user_poke_times /* int64 */,
+               user_logout_times /* int64 */,
+               profile_visit_times /* int64 */,
+               membership_pay_times /* int64 */,
+               CAST(published AS DATE) as published,
+               CAST(cal_time AS TIMESTAMP) as cal_time
         FROM {{ compute_0 }}
-      store_table: test_sink_table
+      store_table: feast_job1_feature_view
     datasource:
       class_name: tests.mock.hive_source.HiveSource
-      table: test_sink_table
-      event_timestamp_column: id
+      table: feast_job1_feature_view
+      event_timestamp_column: published
+      created_timestamp_column: cal_time
+      date_partition_column: published
+      field_mapping:
+        like_amount: image_like_amount
+        poke_times: user_poke_times
+    tags:
+      test: yes
+      feaflow: yes

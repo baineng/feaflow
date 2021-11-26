@@ -11,10 +11,10 @@ def get_class_by_name(class_name):
 # DataSources
 {% for ds in datasource_defs %}
 {{ ds.id }} = get_class_by_name("{{ ds.class_name }}")(
-    {% if ds.event_timestamp_column %}event_timestamp_column={{ ds.event_timestamp_column }},{% endif %}
-    {% if ds.created_timestamp_column %}created_timestamp_column={{ ds.created_timestamp_column }},{% endif %}
+    {% if ds.event_timestamp_column %}event_timestamp_column="{{ ds.event_timestamp_column }}",{% endif %}
+    {% if ds.created_timestamp_column %}created_timestamp_column="{{ ds.created_timestamp_column }}",{% endif %}
     {% if ds.field_mapping %}field_mapping={{ ds.field_mapping }},{% endif %}
-    {% if ds.date_partition_column %}date_partition_column={{ ds.date_partition_column }},{% endif %}
+    {% if ds.date_partition_column %}date_partition_column="{{ ds.date_partition_column }}",{% endif %}
     {% if ds.other_arguments %}{% for k, v in ds.other_arguments.items() %}
     {{ k }}={{ v }},
     {% endfor %}{% endif %}
@@ -42,7 +42,7 @@ feature_view_{{ loop.index }} = FeatureView(
         Feature(
             name="{{ fe.name }}",
             dtype={{ fe.dtype }},
-            {% if fe.labels %}labels={{ fv.labels }},{% endif %}
+            {% if fe.labels %}labels={{ fe.labels }},{% endif %}
         ),
     {% endfor %}],{% endif %}
     {% if fv.batch_source %}batch_source={{ fv.batch_source }},{% endif %}

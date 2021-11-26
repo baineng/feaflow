@@ -47,7 +47,7 @@ class FeatureViewDataSourceConfig(FeaflowImmutableModel):
 
 
 class FeatureViewSinkConfig(SinkConfig):
-    _template_attrs: Tuple[str] = ("name", "batch_source")
+    _template_attrs: Tuple[str] = ("name", "ingest", "datasource")
     type: Literal["feature_view"] = "feature_view"
 
     name: str
@@ -67,7 +67,12 @@ class FeatureViewSink(Sink):
     def get_name(self, template_context: Optional[Dict[str, Any]] = None) -> str:
         return self.get_config("name", template_context)
 
-    def get_from(
+    def get_ingest_config(
         self, template_context: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
-        return self.get_config("from_", template_context)
+    ) -> FeatureViewIngestConfig:
+        return self.get_config("ingest", template_context)
+
+    def get_datasource_config(
+        self, template_context: Optional[Dict[str, Any]] = None
+    ) -> FeatureViewDataSourceConfig:
+        return self.get_config("datasource", template_context)
