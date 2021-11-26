@@ -39,7 +39,7 @@ sinks:
   - type: feature_view
     name: fview_1
     ttl: 3600
-    data_source:
+    ingest:
       select_sql: |-
         SELECT id /* entity: user_id */,
                send_message_amount as send_amount /* type: int */,
@@ -47,4 +47,7 @@ sinks:
                logout_times /* type: int */
         FROM {{ compute_0 }}
       store_table: test_sink_table
+    datasource:
+      class_name: tests.mock.hive_source.HiveSource
+      table: test_sink_table
       event_timestamp_column: id

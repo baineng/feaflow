@@ -3,12 +3,14 @@ import logging
 import re
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any, ContextManager, Dict, List, Optional, Tuple, Union
 
 import sqlparse
 import yaml
 from feast.errors import FeastProviderLoginError
+from feast.feature_store import FeatureStore
 from feast.repo_config import RepoConfig, load_repo_config
 from feast.repo_operations import apply_total
 
@@ -36,12 +38,42 @@ class FeastProject:
         return load_repo_config(self.feast_project_dir)
 
     def apply(self, skip_source_validation=True):
-        """Apply Feast infra"""
+        """Create or update a feature store deployment"""
         try:
             apply_total(
                 self.load_repo_config(), self.feast_project_dir, skip_source_validation
             )
         except FeastProviderLoginError as e:
+            logger.exception(e)
+            raise
+
+    def materialize(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        feature_views: Optional[List[str]] = None,
+    ):
+        """
+        Materialize data from the offline store into the online store.
+
+        This method loads feature data in the specified interval from either
+        the specified feature views, or all feature views if none are specified,
+        into the online store where it is available for online serving.
+
+        Args:
+            start_date (datetime): Start date for time range of data to materialize into the online store
+            end_date (datetime): End date for time range of data to materialize into the online store
+            feature_views (List[str]): Optional list of feature view names. If selected, will only run
+                materialization for the specified feature views.
+        """
+        try:
+            store = FeatureStore(repo_path=self.feast_project_dir)
+            store.materialize(
+                feature_views=feature_views,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        except Exception as e:
             logger.exception(e)
             raise
 
@@ -74,11 +106,11 @@ def init(feaflow_project: Project) -> ContextManager[FeastProject]:
 class DataSourceDefinition(FeaflowImmutableModel):
     id: str
     class_name: str
-    table_name: str
     event_timestamp_column: Optional[str] = None
     created_timestamp_column: Optional[str] = None
     field_mapping: Optional[str] = None
     date_partition_column: Optional[str] = None
+    other_arguments: Optional[Dict[str, str]] = None
 
 
 class EntityDefinition(FeaflowImmutableModel):
@@ -125,7 +157,7 @@ def _generate_project_declarations(feaflow_project: Project) -> str:
         template_str = tf.read()
 
     template_context = {
-        "data_source_defs": [],
+        "datasource_defs": [],
         "entity_defs": [],
         "feature_view_defs": [],
     }
@@ -139,12 +171,12 @@ def _generate_project_declarations(feaflow_project: Project) -> str:
             feaflow_project, job_config
         ):
             (
-                job_data_source_defs,
+                job_datasource_defs,
                 job_entity_defs,
                 job_feature_view_defs,
             ) = job_declarations
 
-            template_context["data_source_defs"] += job_data_source_defs
+            template_context["datasource_defs"] += job_datasource_defs
             template_context["entity_defs"] += job_entity_defs
             template_context["feature_view_defs"] += job_feature_view_defs
 
@@ -168,44 +200,47 @@ def _get_definitions_from_job_config(
     if not fv_configs:
         return None
 
-    job_data_source_defs = []
+    job_datasource_defs = []
     job_entity_defs = []
     job_feature_view_defs = []
 
     for fv_cfg_idx, fv_cfg in enumerate(fv_configs):
         assert isinstance(fv_cfg, FeatureViewSinkConfig)
-        ds_cfg = fv_cfg.data_source
+        ingest_cfg = fv_cfg.ingest
+        ds_cfg = fv_cfg.datasource
 
-        data_source_id = f"data_source_{job_config.name}_{fv_cfg_idx+1}"
-        data_source_def = DataSourceDefinition(
-            id=data_source_id,
-            class_name=feaflow_project.config.feast_project_config.data_source_class,
-            table_name=ds_cfg.store_table,
+        datasource_id = f"datasource_{job_config.name}_{fv_cfg_idx+1}"
+        datasource_def = DataSourceDefinition(
+            id=datasource_id,
+            class_name=ds_cfg.class_name,
             event_timestamp_column=ds_cfg.event_timestamp_column,
             created_timestamp_column=ds_cfg.created_timestamp_column,
             field_mapping=_dict_to_str(ds_cfg.field_mapping)
             if ds_cfg.field_mapping
             else None,
             date_partition_column=ds_cfg.date_partition_column,
+            other_arguments={k: repr(v) for k, v in ds_cfg.other_arguments.items()}
+            if ds_cfg.other_arguments
+            else None,
         )
 
         entity_defs, feature_defs = _get_entities_and_features_from_sql(
-            ds_cfg.select_sql
+            ingest_cfg.select_sql
         )
         feature_view_def = FeatureViewDefinition(
             name=fv_cfg.name,
             entities=[ed.name for ed in entity_defs],
             ttl=repr(fv_cfg.ttl),
             features=feature_defs if len(feature_defs) > 0 else None,
-            batch_source=data_source_id,
+            batch_source=datasource_id,
             tags=_dict_to_str(fv_cfg.tags) if fv_cfg.tags else None,
         )
 
-        job_data_source_defs.append(data_source_def)
+        job_datasource_defs.append(datasource_def)
         job_entity_defs += entity_defs
         job_feature_view_defs.append(feature_view_def)
 
-    return job_data_source_defs, job_entity_defs, job_feature_view_defs
+    return job_datasource_defs, job_entity_defs, job_feature_view_defs
 
 
 def _get_entities_and_features_from_sql(

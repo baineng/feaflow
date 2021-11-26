@@ -10,17 +10,40 @@ from feaflow.sink.table import TableSinkFormat, TableSinkMode
 logger = logging.getLogger(__name__)
 
 
-class FeatureViewDataSourceConfig(FeaflowImmutableModel):
+class FeatureViewIngestConfig(FeaflowImmutableModel):
     _template_attrs: Tuple[str] = ("select_sql",)
 
     select_sql: str
     store_table: str
     store_mode: TableSinkMode = TableSinkMode.APPEND
     store_format: TableSinkFormat = TableSinkFormat.PARQUET
+
+
+class FeatureViewDataSourceConfig(FeaflowImmutableModel):
+    class_name: str
     event_timestamp_column: str
     created_timestamp_column: Optional[str] = None
     field_mapping: Optional[Dict[str, str]] = None
     date_partition_column: Optional[str] = None
+    other_arguments: Optional[Dict[str, Any]] = None
+
+    def __init__(self, **data: Any):
+        new_data = {}
+
+        reserved_keys = [
+            "class_name",
+            "event_timestamp_column",
+            "created_timestamp_column",
+            "field_mapping",
+            "date_partition_column",
+        ]
+        for rk in reserved_keys:
+            if rk in data:
+                new_data[rk] = data[rk]
+                del data[rk]
+
+        new_data["other_arguments"] = data
+        super().__init__(**new_data)
 
 
 class FeatureViewSinkConfig(SinkConfig):
@@ -30,7 +53,8 @@ class FeatureViewSinkConfig(SinkConfig):
     name: str
     ttl: timedelta = timedelta(seconds=(24 * 60 * 60))  # 24 hours
     tags: Optional[Dict[str, str]] = None
-    data_source: FeatureViewDataSourceConfig
+    ingest: FeatureViewIngestConfig
+    datasource: FeatureViewDataSourceConfig
 
 
 class FeatureViewSink(Sink):

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from feast.infra.offline_stores.file import FileOfflineStoreConfig
@@ -41,9 +41,21 @@ def test_init(project_feast):
         assert type(repo_config.offline_store) == FileOfflineStoreConfig
 
 
-def test_apply(project_feast):
+@pytest.fixture()
+def project_feast_applied(project_feast):
     with feast.init(project_feast) as feast_project:
         feast_project.apply()
+        yield feast_project
+
+
+def test_apply(project_feast_applied):
+    pass
+
+
+def test_materialize(project_feast_applied):
+    project_feast_applied.materialize(
+        datetime.utcnow() - timedelta(days=1), datetime.utcnow()
+    )
 
 
 def test_generate_project_declarations(project_feast):
