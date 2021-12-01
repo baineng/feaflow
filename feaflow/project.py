@@ -80,7 +80,7 @@ class Project:
         """
         logger.info("Scanning jobs")
         job_conf_files = find_files_by_patterns(
-            self.root_dir, r"\/jobs?.*\.ya?ml$", r"\/.*?jobs?\.ya?ml$"
+            self.root_dir, r"/jobs?[^/]*\.ya?ml$", r"/[^/]*jobs?\.ya?ml$"
         )
         job_configs = []
         for f in job_conf_files:
