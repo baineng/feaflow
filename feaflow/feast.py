@@ -20,7 +20,7 @@ from feaflow.exceptions import ConfigurationError, NotSupportedFeature
 from feaflow.job_config import JobConfig
 from feaflow.project import Project
 from feaflow.sink.feature_view import FeatureViewSinkConfig
-from feaflow.utils import render_template
+from feaflow.utils import construct_template_context, render_template
 
 logger = logging.getLogger(__name__)
 
@@ -257,9 +257,12 @@ def _get_definitions_from_job_config(
     job_datasource_defs = []
     job_entity_defs = []
     job_feature_view_defs = []
+    job_template_context = construct_template_context(feaflow_project, job_config)
 
     for fv_cfg_idx, fv_cfg in enumerate(fv_configs):
         assert isinstance(fv_cfg, FeatureViewSinkConfig)
+        fv_cfg = render_template(fv_cfg, job_template_context)
+
         ingest_cfg = fv_cfg.ingest
         ds_cfg = fv_cfg.datasource
 

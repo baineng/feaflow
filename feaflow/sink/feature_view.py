@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 class FeatureViewIngestConfig(FeaflowImmutableModel):
-    _template_attrs: Tuple[str] = ("select_sql",)
+    _template_attrs: Tuple[str] = (
+        "select_sql",
+        "store_table",
+        "store_mode",
+        "store_format",
+    )
 
     select_sql: str
     store_table: str
@@ -20,6 +25,15 @@ class FeatureViewIngestConfig(FeaflowImmutableModel):
 
 
 class FeatureViewDataSourceConfig(FeaflowImmutableModel):
+    _template_attrs: Tuple[str] = (
+        "class_name",
+        "event_timestamp_column",
+        "created_timestamp_column",
+        "field_mapping",
+        "date_partition_column",
+        "other_arguments",
+    )
+
     class_name: str
     event_timestamp_column: str
     created_timestamp_column: Optional[str] = None
@@ -47,7 +61,7 @@ class FeatureViewDataSourceConfig(FeaflowImmutableModel):
 
 
 class FeatureViewSinkConfig(SinkConfig):
-    _template_attrs: Tuple[str] = ("name", "ingest", "datasource")
+    _template_attrs: Tuple[str] = ("name", "ttl", "tags", "ingest", "datasource")
     type: Literal["feature_view"] = "feature_view"
 
     name: str

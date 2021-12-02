@@ -103,9 +103,6 @@ class Project:
         execution_date: datetime,
         template_context: Optional[Dict[str, Any]] = None,
     ):
-        if template_context and job.config.loop_params:
-            template_context.update(job.config.loop_params)
-
         logger.info(
             "Running job '%s' at '%s', with execution_date: '%s', template_context: %s",
             job.name,
