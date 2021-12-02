@@ -4,3 +4,5 @@ provider: "{{ provider }}"
 
 {% if online_store %}{{ online_store }}{% endif %}
 {% if offline_store %}{{ offline_store }}{% endif %}
+{% if feature_server %}{{ feature_server }}{% endif %}
+{% if flags %}{{ flags }}{% endif %}

@@ -9,6 +9,7 @@ from typing import Any, ContextManager, Dict, List, Optional, Tuple, Union
 
 import sqlparse
 import yaml
+from feast import flags_helper
 from feast.errors import FeastProviderLoginError
 from feast.feature_store import FeatureStore
 from feast.repo_config import RepoConfig, load_repo_config
@@ -52,7 +53,7 @@ class FeastProject:
         start_date: datetime,
         end_date: datetime,
         feature_views: Optional[List[str]] = None,
-    ):
+    ) -> None:
         """
         Materialize data from the offline store into the online store.
 
@@ -73,6 +74,47 @@ class FeastProject:
                 start_date=start_date,
                 end_date=end_date,
             )
+        except Exception as e:
+            logger.exception(e)
+            raise
+
+    def materialize_incremental(
+        self,
+        end_date: datetime,
+        feature_views: Optional[List[str]] = None,
+    ) -> None:
+        """
+        Materialize incremental new data from the offline store into the online store.
+
+        This method loads incremental new feature data up to the specified end time from either
+        the specified feature views, or all feature views if none are specified,
+        into the online store where it is available for online serving. The start time of
+        the interval materialized is either the most recent end time of a prior materialization or
+        (now - ttl) if no such prior materialization exists.
+
+        Args:
+        end_date (datetime): End date for time range of data to materialize into the online store
+        feature_views (List[str]): Optional list of feature view names. If selected, will only run
+        materialization for the specified feature views.
+        """
+        try:
+            store = FeatureStore(repo_path=self.feast_project_dir)
+            store.materialize_incremental(
+                feature_views=feature_views,
+                end_date=end_date,
+            )
+        except Exception as e:
+            logger.exception(e)
+            raise
+
+    def serve(
+        self,
+        port: int,
+    ) -> None:
+        """Start the feature consumption server locally on a given port."""
+        try:
+            store = FeatureStore(repo_path=self.feast_project_dir)
+            store.serve(port)
         except Exception as e:
             logger.exception(e)
             raise
@@ -141,14 +183,26 @@ def _generate_project_config(feaflow_project: Project) -> str:
     with open(TEMPLATE_DIR / "feature_store.yaml", "r") as tf:
         template_str = tf.read()
 
-    context = feaflow_project.config.feast_project_config.dict()
-    context.update({"project": feaflow_project.name})
-    if context["online_store"]:
-        context["online_store"] = yaml.dump({"online_store": context["online_store"]})
-    if context["offline_store"]:
-        context["offline_store"] = yaml.dump(
-            {"offline_store": context["offline_store"]}
+    feast_project_config = feaflow_project.config.feast_project_config
+    context = {
+        "registry": feast_project_config.registry,
+        "project": feaflow_project.name,
+        "provider": feast_project_config.provider,
+    }
+    if feast_project_config.online_store:
+        context["online_store"] = yaml.dump(
+            {"online_store": feast_project_config.online_store}
         )
+    if feast_project_config.offline_store:
+        context["offline_store"] = yaml.dump(
+            {"offline_store": feast_project_config.offline_store}
+        )
+    if feast_project_config.feature_server:
+        context["feature_server"] = yaml.dump(
+            {"feature_server": feast_project_config.feature_server}
+        )
+    if feast_project_config.flags:
+        context["flags"] = yaml.dump({"flags": feast_project_config.flags})
     return render_template(template_str, context)
 
 

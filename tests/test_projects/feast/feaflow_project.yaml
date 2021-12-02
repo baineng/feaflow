@@ -16,3 +16,6 @@ feast:
     path: data/online_store.db
   offline_store:
     type: file
+  flags:
+    alpha_features: True
+    python_feature_server: true

@@ -26,6 +26,8 @@ class FeastProjectConfig(FeaflowModel):
     registry: Union[StrictStr, Dict[str, Any]] = "data/registry.db"
     online_store: Any
     offline_store: Any
+    feature_server: Optional[Any]
+    flags: Any
 
 
 class ProjectConfig(FeaflowModel):
@@ -127,15 +129,9 @@ class Project:
                 logger.warning(
                     f"Project {self.name} has defined 'feast' in config file, "
                     f"but 'feast' is not installed in current execution environment."
+                    f'you may need to run "pip install feast"'
                 )
         return False
-
-    def get_feast(self) -> "feaflow.feast.Feast":
-        if self._feast is None:
-            from feast import Feast
-
-            self._feast = Feast(self)
-        return self._feast
 
 
 def create_project_config_from_dir(project_dir: Union[str, Path]) -> ProjectConfig:
