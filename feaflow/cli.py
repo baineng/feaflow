@@ -137,7 +137,6 @@ def apply_total_command(ctx: click.Context, skip_source_validation: bool):
 )
 @click.option(
     "--views",
-    "-v",
     help="Feature views to materialize",
     multiple=True,
 )
@@ -184,7 +183,6 @@ def materialize_command(
 )
 @click.option(
     "--views",
-    "-v",
     help="Feature views to incrementally materialize",
     multiple=True,
 )

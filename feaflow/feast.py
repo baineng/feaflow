@@ -9,7 +9,6 @@ from typing import Any, ContextManager, Dict, List, Optional, Tuple, Union
 
 import sqlparse
 import yaml
-from feast import flags_helper
 from feast.errors import FeastProviderLoginError
 from feast.feature_store import FeatureStore
 from feast.repo_config import RepoConfig, load_repo_config
