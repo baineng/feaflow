@@ -9,6 +9,7 @@ from typing import Any, ContextManager, Dict, List, Optional, Tuple, Union
 
 import sqlparse
 import yaml
+from feast.entity import Entity
 from feast.errors import FeastProviderLoginError
 from feast.feature_store import FeatureStore
 from feast.repo_config import RepoConfig, load_repo_config
@@ -37,7 +38,10 @@ class FeastProject:
     def load_repo_config(self) -> RepoConfig:
         return load_repo_config(self.feast_project_dir)
 
-    def apply(self, skip_source_validation=True):
+    def get_feature_store(self) -> FeatureStore:
+        return FeatureStore(repo_path=self.feast_project_dir)
+
+    def apply(self, skip_source_validation=True) -> None:
         """Create or update a feature store deployment"""
         try:
             apply_total(
@@ -53,22 +57,9 @@ class FeastProject:
         end_date: datetime,
         feature_views: Optional[List[str]] = None,
     ) -> None:
-        """
-        Materialize data from the offline store into the online store.
-
-        This method loads feature data in the specified interval from either
-        the specified feature views, or all feature views if none are specified,
-        into the online store where it is available for online serving.
-
-        Args:
-            start_date (datetime): Start date for time range of data to materialize into the online store
-            end_date (datetime): End date for time range of data to materialize into the online store
-            feature_views (List[str]): Optional list of feature view names. If selected, will only run
-                materialization for the specified feature views.
-        """
+        """Materialize data from the offline store into the online store."""
         try:
-            store = FeatureStore(repo_path=self.feast_project_dir)
-            store.materialize(
+            self.get_feature_store().materialize(
                 feature_views=feature_views,
                 start_date=start_date,
                 end_date=end_date,
@@ -82,23 +73,9 @@ class FeastProject:
         end_date: datetime,
         feature_views: Optional[List[str]] = None,
     ) -> None:
-        """
-        Materialize incremental new data from the offline store into the online store.
-
-        This method loads incremental new feature data up to the specified end time from either
-        the specified feature views, or all feature views if none are specified,
-        into the online store where it is available for online serving. The start time of
-        the interval materialized is either the most recent end time of a prior materialization or
-        (now - ttl) if no such prior materialization exists.
-
-        Args:
-        end_date (datetime): End date for time range of data to materialize into the online store
-        feature_views (List[str]): Optional list of feature view names. If selected, will only run
-        materialization for the specified feature views.
-        """
+        """Materialize incremental new data from the offline store into the online store."""
         try:
-            store = FeatureStore(repo_path=self.feast_project_dir)
-            store.materialize_incremental(
+            self.get_feature_store().materialize_incremental(
                 feature_views=feature_views,
                 end_date=end_date,
             )
@@ -112,8 +89,23 @@ class FeastProject:
     ) -> None:
         """Start the feature consumption server locally on a given port."""
         try:
-            store = FeatureStore(repo_path=self.feast_project_dir)
-            store.serve(port)
+            self.get_feature_store().serve(port)
+        except Exception as e:
+            logger.exception(e)
+            raise
+
+    def get_entity(self, name: str) -> Entity:
+        """Retrieves an entity."""
+        try:
+            return self.get_feature_store().get_entity(name)
+        except Exception as e:
+            logger.exception(e)
+            raise
+
+    def teardown(self) -> None:
+        """Retrieves an entity."""
+        try:
+            return self.get_feature_store().teardown()
         except Exception as e:
             logger.exception(e)
             raise

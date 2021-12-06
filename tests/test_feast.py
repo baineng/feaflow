@@ -64,6 +64,12 @@ def test_materialize(project_feast_applied):
     )
 
 
+def test_list_feature_views(project_feast_applied):
+    store = project_feast_applied.get_feature_store()
+    feature_views = store.list_feature_views()
+    print(feature_views)
+
+
 @pytest.mark.integration
 def test_run_feast_job(spark_exec_env, project_feast):
     feast_job = project_feast.get_job("feast_job1")

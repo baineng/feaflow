@@ -1,8 +1,9 @@
+import contextlib
 import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import ContextManager, List
 
 import click
 import pkg_resources
@@ -95,33 +96,51 @@ def run_job(ctx: click.Context, job_name: str, execution_date: datetime):
 
 
 @cli.group(name="feast")
-def feast_cmd():
-    """
-    Feast commands
-    """
-    pass
-
-
-@feast_cmd.command("apply")
+@click.option(
+    "--apply",
+    "-a",
+    is_flag=True,
+    help="Run feast apply before the specify command.",
+)
 @click.option(
     "--skip-source-validation",
     is_flag=True,
-    help="Don't validate the data sources by checking for that the tables exist.",
+    help="When --apply, don't validate the data sources by checking for that the tables exist.",
 )
 @click.pass_context
-def apply_total_command(ctx: click.Context, skip_source_validation: bool):
+def feast_cmd(ctx: click.Context, apply: bool, skip_source_validation: bool):
+    """
+    Feast commands
+    """
+
+    @contextlib.contextmanager
+    def init_feast_project(_apply=None):
+        from feaflow import feast
+
+        _apply = _apply if _apply is not None else apply
+        project_dir = ctx.obj["PROJECT_DIR"]
+        project = Project(project_dir)
+        try:
+            with feast.init(project) as feast_project:
+                if _apply:
+                    feast_project.apply(skip_source_validation)
+
+                yield feast_project
+        except Exception as e:
+            print(str(e))
+            exit(1)
+
+    ctx.obj["FEAST_PROJECT"] = init_feast_project
+
+
+@feast_cmd.command("apply")
+@click.pass_context
+def apply_total_command(ctx: click.Context):
     """
     Create or update a feature store deployment
     """
-    from feaflow import feast
-
-    project_dir = ctx.obj["PROJECT_DIR"]
-    project = Project(project_dir)
-    try:
-        with feast.init(project) as feast_project:
-            feast_project.apply(skip_source_validation)
-    except Exception as e:
-        print(str(e))
+    with ctx.obj["FEAST_PROJECT"](True) as feast_project:
+        pass
 
 
 @feast_cmd.command("materialize")
@@ -140,39 +159,22 @@ def apply_total_command(ctx: click.Context, skip_source_validation: bool):
     help="Feature views to materialize",
     multiple=True,
 )
-@click.option(
-    "--apply",
-    "-a",
-    is_flag=True,
-    help="Run feast apply before materialize.",
-)
 @click.pass_context
 def materialize_command(
     ctx: click.Context,
     start_ts: datetime,
     end_ts: datetime,
     views: List[str],
-    apply: bool,
 ):
     """
     Create or update a feature store deployment
     """
-    from feaflow import feast
-
-    project_dir = ctx.obj["PROJECT_DIR"]
-    project = Project(project_dir)
-    try:
-        with feast.init(project) as feast_project:
-            if apply:
-                feast_project.apply(skip_source_validation=True)
-
-            feast_project.materialize(
-                start_date=make_tzaware(start_ts),
-                end_date=make_tzaware(end_ts),
-                feature_views=None if not views else views,
-            )
-    except Exception as e:
-        print(str(e))
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        feast_project.materialize(
+            start_date=make_tzaware(start_ts),
+            end_date=make_tzaware(end_ts),
+            feature_views=None if not views else views,
+        )
 
 
 @feast_cmd.command("materialize-incremental")
@@ -186,68 +188,176 @@ def materialize_command(
     help="Feature views to incrementally materialize",
     multiple=True,
 )
-@click.option(
-    "--apply",
-    "-a",
-    is_flag=True,
-    help="Run feast apply before incrementally materialize.",
-)
 @click.pass_context
 def materialize_incremental_command(
     ctx: click.Context,
     end_ts: datetime,
     views: List[str],
-    apply: bool,
 ):
     """
     Create or update a feature store deployment
     """
-    from feaflow import feast
-
-    project_dir = ctx.obj["PROJECT_DIR"]
-    project = Project(project_dir)
-    try:
-        with feast.init(project) as feast_project:
-            if apply:
-                feast_project.apply(skip_source_validation=True)
-
-            feast_project.materialize_incremental(
-                end_date=make_tzaware(end_ts),
-                feature_views=None if not views else views,
-            )
-    except Exception as e:
-        print(str(e))
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        feast_project.materialize_incremental(
+            end_date=make_tzaware(end_ts),
+            feature_views=None if not views else views,
+        )
 
 
 @feast_cmd.command("serve")
 @click.option(
     "--port", "-p", type=click.INT, default=6566, help="Specify a port for the server"
 )
-@click.option(
-    "--apply",
-    "-a",
-    is_flag=True,
-    help="Run feast apply before serve.",
-)
 @click.pass_context
 def serve_command(
     ctx: click.Context,
     port: int,
-    apply: bool,
 ):
     """Start a the feature consumption server locally on a given port."""
-    from feaflow import feast
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        feast_project.serve(port)
 
-    project_dir = ctx.obj["PROJECT_DIR"]
-    project = Project(project_dir)
-    try:
-        with feast.init(project) as feast_project:
-            if apply:
-                feast_project.apply(skip_source_validation=True)
 
-            feast_project.serve(port)
-    except Exception as e:
-        print(str(e))
+@feast_cmd.command("teardown")
+@click.pass_context
+def teardown_command(ctx: click.Context):
+    """
+    Tear down deployed feature store infrastructure
+    """
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        feast_project.teardown()
+
+
+@feast_cmd.command("registry-dump")
+@click.pass_context
+def registry_dump_command(ctx: click.Context):
+    """
+    Print contents of the metadata registry
+    """
+    from feast.registry import Registry
+
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        repo_config = feast_project.load_repo_config()
+        registry_config = repo_config.get_registry_config()
+        project = repo_config.project
+        registry = Registry(
+            registry_config=registry_config, repo_path=feast_project.feast_project_dir
+        )
+
+        for entity in registry.list_entities(project=project):
+            print(entity)
+        for feature_view in registry.list_feature_views(project=project):
+            print(feature_view)
+
+
+@feast_cmd.group(name="entities")
+def entities_cmd():
+    """
+    Access entities
+    """
+    pass
+
+
+@entities_cmd.command("describe")
+@click.argument("name", type=click.STRING)
+@click.pass_context
+def entity_describe(ctx: click.Context, name: str):
+    """
+    Describe an entity
+    """
+    import yaml
+
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        entity = feast_project.get_entity(name)
+
+        print(
+            yaml.dump(
+                yaml.safe_load(str(entity)),
+                default_flow_style=False,
+                sort_keys=False,
+            )
+        )
+
+
+@entities_cmd.command(name="list")
+@click.pass_context
+def entity_list(ctx: click.Context):
+    """
+    List all entities
+    """
+    table = []
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        for entity in feast_project.get_feature_store().list_entities():
+            table.append([entity.name, entity.description, entity.value_type])
+
+    from tabulate import tabulate
+
+    print(tabulate(table, headers=["NAME", "DESCRIPTION", "TYPE"], tablefmt="plain"))
+
+
+@feast_cmd.group(name="feature-views")
+def feature_views_cmd():
+    """
+    Access feature views
+    """
+    pass
+
+
+@feature_views_cmd.command("describe")
+@click.argument("name", type=click.STRING)
+@click.pass_context
+def feature_view_describe(ctx: click.Context, name: str):
+    """
+    Describe a feature view
+    """
+    import yaml
+
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        feature_view = feast_project.get_feature_store().get_feature_view(name)
+        print(
+            yaml.dump(
+                yaml.safe_load(str(feature_view)),
+                default_flow_style=False,
+                sort_keys=False,
+            )
+        )
+
+
+@feature_views_cmd.command(name="list")
+@click.pass_context
+def feature_view_list(ctx: click.Context):
+    """
+    List all feature views
+    """
+    from feast.feature_view import FeatureView
+    from feast.on_demand_feature_view import OnDemandFeatureView
+
+    table = []
+    with ctx.obj["FEAST_PROJECT"]() as feast_project:
+        store = feast_project.get_feature_store()
+        for feature_view in [
+            *store.list_feature_views(),
+            *store.list_request_feature_views(),
+            *store.list_on_demand_feature_views(),
+        ]:
+            entities = set()
+            if isinstance(feature_view, FeatureView):
+                entities.update(feature_view.entities)
+            elif isinstance(feature_view, OnDemandFeatureView):
+                for backing_fv in feature_view.inputs.values():
+                    if isinstance(backing_fv, FeatureView):
+                        entities.update(backing_fv.entities)
+            table.append(
+                [
+                    feature_view.name,
+                    entities if len(entities) > 0 else "n/a",
+                    type(feature_view).__name__,
+                ]
+            )
+
+    from tabulate import tabulate
+
+    print(tabulate(table, headers=["NAME", "ENTITIES", "TYPE"], tablefmt="plain"))
 
 
 if __name__ == "__main__":
