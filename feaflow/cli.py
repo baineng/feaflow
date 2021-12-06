@@ -105,7 +105,7 @@ def run_job(ctx: click.Context, job_name: str, execution_date: datetime):
 @click.option(
     "--skip-source-validation",
     is_flag=True,
-    help="When --apply, don't validate the data sources by checking for that the tables exist.",
+    help="When --apply specified, don't validate the data sources by checking for that the tables exist.",
 )
 @click.pass_context
 def feast_cmd(ctx: click.Context, apply: bool, skip_source_validation: bool):
@@ -114,16 +114,22 @@ def feast_cmd(ctx: click.Context, apply: bool, skip_source_validation: bool):
     """
 
     @contextlib.contextmanager
-    def init_feast_project(_apply=None):
+    def init_feast_project(_apply=None, _skip_source_validation=None):
         from feaflow import feast
 
         _apply = _apply if _apply is not None else apply
+        _skip_source_validation = (
+            _skip_source_validation
+            if _skip_source_validation is not None
+            else skip_source_validation
+        )
+
         project_dir = ctx.obj["PROJECT_DIR"]
         project = Project(project_dir)
         try:
             with feast.init(project) as feast_project:
                 if _apply:
-                    feast_project.apply(skip_source_validation)
+                    feast_project.apply(_skip_source_validation)
 
                 yield feast_project
         except Exception as e:
@@ -134,12 +140,17 @@ def feast_cmd(ctx: click.Context, apply: bool, skip_source_validation: bool):
 
 
 @feast_cmd.command("apply")
+@click.option(
+    "--skip-source-validation",
+    is_flag=True,
+    help="Don't validate the data sources by checking for that the tables exist.",
+)
 @click.pass_context
-def apply_total_command(ctx: click.Context):
+def apply_total_command(ctx: click.Context, skip_source_validation: bool):
     """
     Create or update a feature store deployment
     """
-    with ctx.obj["FEAST_PROJECT"](True) as feast_project:
+    with ctx.obj["FEAST_PROJECT"](True, skip_source_validation) as feast_project:
         pass
 
 
