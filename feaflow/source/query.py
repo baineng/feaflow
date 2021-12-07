@@ -14,6 +14,7 @@ class QuerySourceConfig(SourceConfig):
 
     sql: str
     alias: Optional[str] = None
+    desc: Optional[str] = None
 
 
 class QuerySource(Source):

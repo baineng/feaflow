@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 
 
 class SqlComputeConfig(ComputeConfig):
-    _template_attrs: Tuple[str] = ("sql",)
+    _template_attrs: Tuple[str] = ("sql", "desc")
     type: Literal["sql"] = "sql"
 
     sql: str
+    desc: Optional[str] = None
 
 
 class SqlCompute(Compute):
