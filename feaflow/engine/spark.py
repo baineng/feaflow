@@ -400,9 +400,9 @@ class FeatureViewSinkHandler(ComponentHandler):
             datasource_cfg = sink.get_datasource_config(exec_env.template_context)
 
             select_sql = ingest_cfg.select_sql
-            partition_col = datasource_cfg.date_partition_column
             ingest_table = ingest_cfg.store_table
             store_format = ingest_cfg.store_format
+            partition_cols = ingest_cfg.partition_columns
 
             spark = exec_env.spark_session
             logger.info("Ingesting to FeatureViewSink by sql: \n%s", select_sql)
@@ -418,14 +418,14 @@ class FeatureViewSinkHandler(ComponentHandler):
             else:
                 # otherwise create the sink table
                 writer = writer.format(store_format)
-                if partition_col:
-                    writer = writer.partitionBy(partition_col)
+                if partition_cols:
+                    writer = writer.partitionBy(partition_cols)
                 logger.info(
                     "Sink table '%s' does not exist, creating the table and inserting data into it. "
                     "format: '%s', partition: '%s'",
                     ingest_table,
                     store_format,
-                    partition_col,
+                    partition_cols,
                 )
                 writer.saveAsTable(ingest_table)
 

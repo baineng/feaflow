@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from typing_extensions import Literal
 
@@ -14,12 +14,14 @@ class FeatureViewIngestConfig(FeaflowImmutableModel):
     _template_attrs: Tuple[str] = (
         "select_sql",
         "store_table",
+        "partition_columns",
     )
 
     select_sql: str
     store_table: str
     store_mode: TableSinkMode = TableSinkMode.APPEND
     store_format: TableSinkFormat = TableSinkFormat.PARQUET
+    partition_columns: Optional[List[str]] = None
 
 
 class FeatureViewDataSourceConfig(FeaflowImmutableModel):
