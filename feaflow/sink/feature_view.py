@@ -14,8 +14,6 @@ class FeatureViewIngestConfig(FeaflowImmutableModel):
     _template_attrs: Tuple[str] = (
         "select_sql",
         "store_table",
-        "store_mode",
-        "store_format",
     )
 
     select_sql: str
