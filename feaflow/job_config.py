@@ -34,7 +34,8 @@ class JobConfig(FeaflowModel):
     computes: List[ComputeConfig]
     sources: Optional[List[SourceConfig]] = None
     sinks: Optional[List[SinkConfig]] = None
-    loop_params: Optional[Dict[str, Any]] = None
+    loop_variables: Optional[Dict[str, Any]] = None
+    variables: Optional[Dict[str, Any]] = None
 
     def __init__(self, **data: Any):
         if "engine" in data:

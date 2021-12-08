@@ -214,8 +214,11 @@ def construct_template_context(
         "engine_name": job_config.engine.use,
     }
 
-    if job_config.loop_params:
-        context.update(job_config.loop_params)
+    if job_config.variables:
+        context.update(job_config.variables)
+
+    if job_config.loop_variables:
+        context.update(job_config.loop_variables)
 
     if execution_date:
         ds = execution_date.strftime("%Y-%m-%d")

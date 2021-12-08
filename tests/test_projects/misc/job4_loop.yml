@@ -6,6 +6,10 @@ loop:
   - name: l3
     schedule_interval: '2 8 * * *'
 
+variables:
+  fields: ['field1', 'field2']
+  table: var_table
+
 name: test_job4_{{ name }}
 engine: default_spark
 

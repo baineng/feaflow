@@ -92,14 +92,14 @@ def parse_job_config_file(path: Union[str, Path]) -> List[JobConfig]:
                 logger.debug("Detected loop")
                 assert type(config["loop"]) == list
                 result = []
-                for loop_params in config["loop"]:
-                    logger.debug("Loop params: %s", loop_params)
+                for loop_variables in config["loop"]:
+                    logger.debug("Loop params: %s", loop_variables)
                     _config = copy.deepcopy(config)
                     del _config["loop"]
-                    _config["loop_params"] = loop_params
+                    _config["loop_variables"] = loop_variables
                     job_config = JobConfig(config_file_path=job_conf_path, **_config)
                     job_config = render_template(
-                        job_config, loop_params, use_jinja2=False
+                        job_config, loop_variables, use_jinja2=False
                     )
                     logger.debug("Parsed job config: %s", job_config)
                     assert re.match(
