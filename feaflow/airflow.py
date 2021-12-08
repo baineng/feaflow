@@ -21,23 +21,13 @@ DEFAULT_TASK_ID = "run_job"
 logger = logging.getLogger(__name__)
 
 
-def init_dags_from_project(
-    project: Project,
-    dag_args_overlay: Optional[Dict[str, Any]] = None,
-) -> None:
-    """
-    Create Airflow DAGs based on Feaflow project, The DAGs will be dumped into global().
-    """
-    dags: List[DAG] = create_dags_from_project(project, dag_args_overlay)
-    for dag in dags:
-        # Put the dags into globals, in order to be loaded by Airflow
-        globals()[dag.dag_id] = dag
-
-
 def create_dags_from_project(
     project: Project,
     dag_args_overlay: Optional[Dict[str, Any]] = None,
 ) -> List[DAG]:
+    """
+    Create Airflow DAGs based on Feaflow project
+    """
     logger.info("Creating DAGs from project '%s'", project.name)
     jobs = project.scan_jobs()
     logger.info("Scanned %s jobs", len(jobs))

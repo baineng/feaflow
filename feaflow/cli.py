@@ -56,7 +56,7 @@ DATETIME_TYPE = click.DateTime(
 @click.pass_context
 def cli(ctx: click.Context, project: str, verbose: int):
     """
-    Welcome use Feaflow (https://github.com/thenetcircle/feaflow)
+    Welcome use Feaflow (https://github.com/baineng/feaflow)
     """
     ctx.ensure_object(dict)
     ctx.obj["PROJECT_DIR"] = Path.cwd() if project is None else Path(project).absolute()
