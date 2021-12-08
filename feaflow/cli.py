@@ -117,6 +117,7 @@ def job_config_dump(ctx: click.Context, job_name: str, execution_date: datetime)
     """
     Dump a rendered job config
     """
+    import pprint
     from datetime import timedelta
 
     import yaml
@@ -158,22 +159,23 @@ def job_config_dump(ctx: click.Context, job_name: str, execution_date: datetime)
         for field in to_render_fields:
             field_value = job_config.__getattribute__(field)
             if field_value is not None:
-                rendered_job_config[field] = render_template(
-                    field_value, template_context
-                )
+                rendered_field_value = render_template(field_value, template_context)
 
-                if type(rendered_job_config[field]) == list:
-                    rendered_job_config[field] = [
+                if type(rendered_field_value) == list:
+                    rendered_field_value = [
                         f.dict(by_alias=True, exclude_unset=True)
-                        for f in rendered_job_config[field]
+                        for f in rendered_field_value
                     ]
                 else:
-                    rendered_job_config[field] = rendered_job_config[field].dict(
+                    rendered_field_value = rendered_field_value.dict(
                         by_alias=True, exclude_unset=True
                     )
 
+            rendered_job_config[field] = rendered_field_value
+
         print(f"============ {job_config.name} ============")
         print(yaml.dump_all([rendered_job_config], indent=2, sort_keys=False))
+        # pprint.pprint(rendered_job_config)
         print("")
 
 

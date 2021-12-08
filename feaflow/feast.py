@@ -422,6 +422,7 @@ FEAST_VALUETYPE_MAPPING = {
     "FLOAT": "ValueType.FLOAT",
     "BOOL": "ValueType.BOOL",
     "UNIX_TIMESTAMP": "ValueType.UNIX_TIMESTAMP",
+    "TIMESTAMP": "ValueType.UNIX_TIMESTAMP",
     "BYTES_LIST": "ValueType.BYTES_LIST",
     "STRING_LIST": "ValueType.STRING_LIST",
     "INT32_LIST": "ValueType.INT32_LIST",
