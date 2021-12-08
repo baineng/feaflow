@@ -1,16 +1,17 @@
 import contextlib
 import logging
+import re
 import sys
 from datetime import datetime
-from pathlib import Path
-from typing import ContextManager, List
+from pathlib import Path, PosixPath
+from typing import List
 
 import click
 import pkg_resources
 
 from feaflow.exceptions import JobNotFoundError
 from feaflow.project import Project
-from feaflow.utils import construct_template_context, make_tzaware
+from feaflow.utils import construct_template_context, make_tzaware, render_template
 
 
 def setup_logging(verbose: int):
@@ -93,6 +94,87 @@ def run_job(ctx: click.Context, job_name: str, execution_date: datetime):
 
     template_context = construct_template_context(project, job.config, execution_date)
     project.run_job(job, execution_date, template_context)
+
+
+@cli.group(name="dump")
+@click.pass_context
+def dump_cmd(ctx: click.Context):
+    """
+    Dump commands
+    """
+    pass
+
+
+@dump_cmd.command("job-config")
+@click.argument("job_name", type=click.STRING)
+@click.argument(
+    "execution_date",
+    type=DATETIME_TYPE,
+    metavar="EXECUTION_DATE",
+)
+@click.pass_context
+def job_config_dump(ctx: click.Context, job_name: str, execution_date: datetime):
+    """
+    Dump a rendered job config
+    """
+    from datetime import timedelta
+
+    import yaml
+
+    project_dir = ctx.obj["PROJECT_DIR"]
+    project = Project(project_dir)
+    job_configs = []
+    jobs = project.scan_jobs()
+    for _job in jobs:
+        if re.search(re.compile(job_name, re.I), _job.name):
+            job_configs.append(_job)
+
+    if not job_configs:
+        raise JobNotFoundError(project_dir, job_name)
+
+    def path_representer(dumper, data):
+        return dumper.represent_scalar("!path", "%s" % data)
+
+    def timedelta_representer(dumper, data):
+        return dumper.represent_scalar("!timedelta", "%s" % data)
+
+    yaml.add_representer(Path, path_representer)
+    yaml.add_representer(PosixPath, path_representer)
+    yaml.add_representer(timedelta, timedelta_representer)
+
+    for job_config in job_configs:
+        # for execution_date has no timezone, just replace to utc
+        execution_date = make_tzaware(execution_date)
+
+        template_context = construct_template_context(
+            project, job_config, execution_date
+        )
+
+        rendered_job_config = job_config.dict(
+            include={"name", "config_file_path", "loop_variables", "variables"}
+        )
+
+        to_render_fields = ["engine", "scheduler", "sources", "computes", "sinks"]
+        for field in to_render_fields:
+            field_value = job_config.__getattribute__(field)
+            if field_value is not None:
+                rendered_job_config[field] = render_template(
+                    field_value, template_context
+                )
+
+                if type(rendered_job_config[field]) == list:
+                    rendered_job_config[field] = [
+                        f.dict(by_alias=True, exclude_unset=True)
+                        for f in rendered_job_config[field]
+                    ]
+                else:
+                    rendered_job_config[field] = rendered_job_config[field].dict(
+                        by_alias=True, exclude_unset=True
+                    )
+
+        print(f"============ {job_config.name} ============")
+        print(yaml.dump_all([rendered_job_config], indent=2, sort_keys=False))
+        print("")
 
 
 @cli.group(name="feast")
