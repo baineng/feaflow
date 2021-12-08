@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -21,7 +21,23 @@ DEFAULT_TASK_ID = "run_job"
 logger = logging.getLogger(__name__)
 
 
-def create_dags_from_project(project: Project) -> List[DAG]:
+def init_dags_from_project(
+    project: Project,
+    dag_args_overlay: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    Create Airflow DAGs based on Feaflow project, The DAGs will be dumped into global().
+    """
+    dags: List[DAG] = create_dags_from_project(project, dag_args_overlay)
+    for dag in dags:
+        # Put the dags into globals, in order to be loaded by Airflow
+        globals()[dag.dag_id] = dag
+
+
+def create_dags_from_project(
+    project: Project,
+    dag_args_overlay: Optional[Dict[str, Any]] = None,
+) -> List[DAG]:
     logger.info("Creating DAGs from project '%s'", project.name)
     jobs = project.scan_jobs()
     logger.info("Scanned %s jobs", len(jobs))
@@ -33,13 +49,17 @@ def create_dags_from_project(project: Project) -> List[DAG]:
                 "Detected a scheduler config is not a instance of AirflowSchedulerConfig"
             )
             continue
-        dag = create_dag_from_job(project, job_config)
+        dag = create_dag_from_job(project, job_config, dag_args_overlay)
         logger.info("Created a new DAG '%s'", dag.dag_id)
         dags.append(dag)
     return dags
 
 
-def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
+def create_dag_from_job(
+    project: Project,
+    job_config: JobConfig,
+    dag_args_overlay: Optional[Dict[str, Any]] = None,
+) -> DAG:
     logger.info(
         "Creating a DAG from project '%s' and job '%s'", project.name, job_config.name
     )
@@ -74,6 +94,15 @@ def create_dag_from_job(project: Project, job_config: JobConfig) -> DAG:
             for k, v in scheduler_config.default_args.dict().items()
             if v is not None
         }
+    if dag_args_overlay:
+        if "default_args" in dag_args_overlay:
+            if "default_args" in dag_args:
+                dag_args["default_args"].update(dag_args_overlay["default_args"])
+            else:
+                dag_args["default_args"] = dag_args_overlay["default_args"]
+            del dag_args_overlay["default_args"]
+        dag_args.update(dag_args_overlay)
+
     task_id = scheduler_config.task_id or DEFAULT_TASK_ID
 
     logger.debug("Creating DAG with arguments: %s", dag_args)
